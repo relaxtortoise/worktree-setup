@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Build binaries
+        run: |
+          mkdir -p dist
+          targets="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64"
+          for t in $targets; do
+            GOOS=${t%/*}
+            GOARCH=${t#*/}
+            ext=""
+            [ "$GOOS" = "windows" ] && ext=".exe"
+            echo "Building wt-${GOOS}-${GOARCH}${ext}"
+            GOOS=$GOOS GOARCH=$GOARCH go build -o "dist/wt-${GOOS}-${GOARCH}${ext}" ./cmd/cli/
+          done
+
+      - name: Generate changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          echo "## Changes" > CHANGELOG.md
+          if [ -n "$PREV_TAG" ]; then
+            echo "**${PREV_TAG}...${{ github.ref_name }}**" >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            git log --oneline --no-merges $PREV_TAG..HEAD | while read line; do
+              echo "- $line" >> CHANGELOG.md
+            done
+          else
+            echo "**Initial release: ${{ github.ref_name }}**" >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            git log --oneline --no-merges | while read line; do
+              echo "- $line" >> CHANGELOG.md
+            done
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: CHANGELOG.md
+          files: dist/*
+          generate_release_notes: true
