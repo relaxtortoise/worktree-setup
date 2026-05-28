@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+// CmdFn is the function used to create exec.Cmd instances.
+// It can be overridden in tests for dependency injection.
+var CmdFn = exec.Command
+
 type Worktree struct {
 	Path   string
 	Head   string
@@ -15,7 +19,7 @@ type Worktree struct {
 }
 
 func Run(args ...string) (string, error) {
-	cmd := exec.Command("git", args...)
+	cmd := CmdFn("git", args...)
 	cmd.Env = os.Environ()
 	out, err := cmd.Output()
 	if err != nil {
@@ -29,7 +33,7 @@ func Run(args ...string) (string, error) {
 
 // RunInternal 执行 git 命令并设置 WT_INTERNAL 标记
 func RunInternal(args ...string) (string, error) {
-	cmd := exec.Command("git", args...)
+	cmd := CmdFn("git", args...)
 	cmd.Env = append(os.Environ(), "WT_INTERNAL=1")
 	out, err := cmd.Output()
 	if err != nil {
