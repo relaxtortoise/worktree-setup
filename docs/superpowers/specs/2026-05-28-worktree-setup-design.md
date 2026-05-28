@@ -15,7 +15,8 @@
 | `wt init` | 生成 `.worktree.yaml` 模板及项目个人配置 |
 | `wt install` | 往 `.git/hooks/` 安装 hook 脚本 |
 | `wt run <event>` | 执行配置中对应事件，供 git hooks 内部调用 |
-| `wt config [get/set/list]` | 管理 `~/.config/worktree-setup/` 下的个人配置 |
+| `wt config [get/set/list]` | 管理项目个人配置 `~/.config/worktree-setup/projects/<name>/config.yaml` |
+| `wt config -g \| --global [get/set/list]` | 管理全局个人配置 `~/.config/worktree-setup/config.yaml` |
 
 ### 参数
 
