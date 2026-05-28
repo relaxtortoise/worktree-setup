@@ -111,8 +111,8 @@ func TestCreate_NoMainWorktree_AutoDetect(t *testing.T) {
 
 	// Chdir so that FindMainWorktree can also rely on cwd as a fallback
 	oldDir, _ := os.Getwd()
-	os.Chdir(mainDir)
-	defer os.Chdir(oldDir)
+	_ = os.Chdir(mainDir)
+	defer func() { _ = os.Chdir(oldDir) }()
 
 	path, err := Create("feature-auto", "", "github.com-owner-repo", cfg, false)
 	require.NoError(t, err)

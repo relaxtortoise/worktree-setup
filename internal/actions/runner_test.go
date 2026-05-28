@@ -75,7 +75,7 @@ func TestExecuteEvent_RunStep(t *testing.T) {
 func TestExecuteEvent_CopyStep(t *testing.T) {
 	srcDir := t.TempDir()
 	dstDir := t.TempDir()
-	os.WriteFile(filepath.Join(srcDir, "a.txt"), []byte("hello"), 0644)
+	os.WriteFile(filepath.Join(srcDir, "a.txt"), []byte("hello"), 0644) //nolint:errcheck //nolint:errcheck
 
 	r := NewRunner(srcDir)
 	event := &config.Event{
@@ -92,7 +92,7 @@ func TestExecuteEvent_CopyStep(t *testing.T) {
 func TestExecuteEvent_SymlinkStep(t *testing.T) {
 	srcDir := t.TempDir()
 	dstDir := t.TempDir()
-	os.WriteFile(filepath.Join(srcDir, "target.txt"), []byte("target"), 0644)
+	os.WriteFile(filepath.Join(srcDir, "target.txt"), []byte("target"), 0644) //nolint:errcheck //nolint:errcheck
 
 	r := NewRunner(srcDir)
 	event := &config.Event{
@@ -183,4 +183,67 @@ func TestExecuteRun_MultipleCommands(t *testing.T) {
 func TestExecuteRun_EmptyCommands(t *testing.T) {
 	err := ExecuteRun([]string{}, "/tmp", false)
 	require.NoError(t, err)
+}
+
+func TestExecuteEvent_StepWithEmptyLines(t *testing.T) {
+	dir := t.TempDir()
+	r := NewRunner(dir)
+	event := &config.Event{
+		Steps: []config.Step{
+			{Run: "\n  \necho hello > " + filepath.Join(dir, "out.txt") + "\n\n"},
+		},
+	}
+	err := r.ExecuteEvent(event, dir)
+	require.NoError(t, err)
+	assert.FileExists(t, filepath.Join(dir, "out.txt"))
+}
+
+func TestExecuteEvent_StepWithCopyAndRun(t *testing.T) {
+	srcDir := t.TempDir()
+	dstDir := t.TempDir()
+	os.WriteFile(filepath.Join(srcDir, "src.txt"), []byte("data"), 0644) //nolint:errcheck //nolint:errcheck
+
+	r := NewRunner(srcDir)
+	event := &config.Event{
+		Steps: []config.Step{
+			{
+				Copy: &config.CopyItems{Items: []config.CopyAction{{From: "src.txt", To: "dst.txt"}}},
+				Run:  "echo done > " + filepath.Join(dstDir, "done.txt"),
+			},
+		},
+	}
+	err := r.ExecuteEvent(event, dstDir)
+	require.NoError(t, err)
+	assert.FileExists(t, filepath.Join(dstDir, "dst.txt"))
+	assert.FileExists(t, filepath.Join(dstDir, "done.txt"))
+}
+
+func TestExecuteEvent_CopyStepFailure(t *testing.T) {
+	dstDir := t.TempDir()
+	r := NewRunner("/nonexistent-main")
+	event := &config.Event{
+		Steps: []config.Step{
+			{Copy: &config.CopyItems{Items: []config.CopyAction{{From: "nope.txt", To: "nope.txt"}}}},
+		},
+	}
+	err := r.ExecuteEvent(event, dstDir)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "copy")
+}
+
+func TestExecuteEvent_SymlinkStepFailure(t *testing.T) {
+	srcDir := t.TempDir()
+	dstDir := t.TempDir()
+	// Create a file where the symlink would be placed to force os.Symlink to fail
+	os.WriteFile(filepath.Join(dstDir, "link.txt"), []byte("existing"), 0644) //nolint:errcheck //nolint:errcheck
+
+	r := NewRunner(srcDir)
+	event := &config.Event{
+		Steps: []config.Step{
+			{Symlink: &config.CopyItems{Items: []config.CopyAction{{From: "target.txt", To: "link.txt"}}}},
+		},
+	}
+	err := r.ExecuteEvent(event, dstDir)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "symlink")
 }

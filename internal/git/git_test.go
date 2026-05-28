@@ -252,8 +252,8 @@ func TestAddWorktree_Success(t *testing.T) {
 	wtDir := filepath.Join(t.TempDir(), "worktree")
 
 	oldDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(oldDir)
+	_ = os.Chdir(dir)
+	defer func() { _ = os.Chdir(oldDir) }()
 
 	out, err := Run("worktree", "list")
 	require.NoError(t, err, "listing before add: %s", out)
@@ -268,8 +268,8 @@ func TestRemoveWorktree_Success(t *testing.T) {
 	wtDir := filepath.Join(t.TempDir(), "worktree")
 
 	oldDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(oldDir)
+	_ = os.Chdir(dir)
+	defer func() { _ = os.Chdir(oldDir) }()
 
 	err := AddWorktree(wtDir, "", "")
 	require.NoError(t, err)
@@ -284,8 +284,8 @@ func TestRemoveWorktree_Force(t *testing.T) {
 	wtDir := filepath.Join(t.TempDir(), "worktree")
 
 	oldDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(oldDir)
+	_ = os.Chdir(dir)
+	defer func() { _ = os.Chdir(oldDir) }()
 
 	err := AddWorktree(wtDir, "", "")
 	require.NoError(t, err)
@@ -303,8 +303,8 @@ func TestListWorktrees(t *testing.T) {
 	wtDir := filepath.Join(t.TempDir(), "worktree")
 
 	oldDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(oldDir)
+	_ = os.Chdir(dir)
+	defer func() { _ = os.Chdir(oldDir) }()
 
 	err := AddWorktree(wtDir, "feature-x", "main")
 	require.NoError(t, err)
@@ -327,8 +327,8 @@ func TestFindMainWorktree_Main(t *testing.T) {
 	dir := initGitRepo(t)
 
 	oldDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(oldDir)
+	_ = os.Chdir(dir)
+	defer func() { _ = os.Chdir(oldDir) }()
 
 	path, err := FindMainWorktree()
 	require.NoError(t, err)
@@ -346,8 +346,8 @@ func TestFindMainWorktree_Master(t *testing.T) {
 	runRawGit(t, dir, "commit", "-m", "initial")
 
 	oldDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(oldDir)
+	_ = os.Chdir(dir)
+	defer func() { _ = os.Chdir(oldDir) }()
 
 	path, err := FindMainWorktree()
 	require.NoError(t, err)
@@ -358,8 +358,8 @@ func TestCheckedOutBranches(t *testing.T) {
 	dir := initGitRepo(t)
 
 	oldDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(oldDir)
+	_ = os.Chdir(dir)
+	defer func() { _ = os.Chdir(oldDir) }()
 
 	branches := checkedOutBranches()
 	assert.NotNil(t, branches)
@@ -395,15 +395,15 @@ func TestFetchOrigin(t *testing.T) {
 	runRawGit(t, otherDir, "clone", remoteDir, otherDir)
 	runRawGit(t, otherDir, "config", "user.email", "other@test")
 	runRawGit(t, otherDir, "config", "user.name", "other")
-	os.WriteFile(filepath.Join(otherDir, "other.txt"), []byte("other"), 0644)
+	os.WriteFile(filepath.Join(otherDir, "other.txt"), []byte("other"), 0644) //nolint:errcheck //nolint:errcheck
 	runRawGit(t, otherDir, "add", "other.txt")
 	runRawGit(t, otherDir, "commit", "-m", "other commit")
 	runRawGit(t, otherDir, "push", "origin", "main")
 
 	// Now fetch from local
 	oldDir, _ := os.Getwd()
-	os.Chdir(localDir)
-	defer os.Chdir(oldDir)
+	_ = os.Chdir(localDir)
+	defer func() { _ = os.Chdir(oldDir) }()
 
 	err := FetchOrigin()
 	require.NoError(t, err)
@@ -417,7 +417,7 @@ func TestListRemoteBranches(t *testing.T) {
 	runRawGit(t, otherDir, "clone", remoteDir, otherDir)
 	runRawGit(t, otherDir, "config", "user.email", "other@test")
 	runRawGit(t, otherDir, "config", "user.name", "other")
-	os.WriteFile(filepath.Join(otherDir, "feature.txt"), []byte("feature"), 0644)
+	os.WriteFile(filepath.Join(otherDir, "feature.txt"), []byte("feature"), 0644) //nolint:errcheck //nolint:errcheck
 	runRawGit(t, otherDir, "add", "feature.txt")
 	runRawGit(t, otherDir, "commit", "-m", "feature commit")
 
@@ -431,8 +431,8 @@ func TestListRemoteBranches(t *testing.T) {
 
 	// Fetch into local
 	oldDir, _ := os.Getwd()
-	os.Chdir(localDir)
-	defer os.Chdir(oldDir)
+	_ = os.Chdir(localDir)
+	defer func() { _ = os.Chdir(oldDir) }()
 
 	runRawGit(t, localDir, "fetch", "origin")
 
@@ -451,8 +451,8 @@ func TestListRemoteBranches(t *testing.T) {
 func TestListRemoteBranches_NoRemote(t *testing.T) {
 	dir := initGitRepo(t)
 	oldDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(oldDir)
+	_ = os.Chdir(dir)
+	defer func() { _ = os.Chdir(oldDir) }()
 
 	branches, err := ListRemoteBranches()
 	if err != nil {
@@ -466,8 +466,8 @@ func TestCurrentWorktreePath(t *testing.T) {
 	dir := initGitRepo(t)
 
 	oldDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(oldDir)
+	_ = os.Chdir(dir)
+	defer func() { _ = os.Chdir(oldDir) }()
 
 	path, err := CurrentWorktreePath()
 	require.NoError(t, err)

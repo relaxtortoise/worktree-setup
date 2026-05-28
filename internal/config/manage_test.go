@@ -17,10 +17,10 @@ func captureStdout(fn func()) string {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	fn()
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
+	_, _ = io.Copy(&buf, r)
 	return buf.String()
 }
 
@@ -103,7 +103,7 @@ func TestPrintFile(t *testing.T) {
 	t.Run("existing file", func(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "config.yaml")
-		os.WriteFile(path, []byte("main_worktree: /app\n"), 0644)
+		os.WriteFile(path, []byte("main_worktree: /app\n"), 0644) //nolint:errcheck //nolint:errcheck
 
 		out := captureStdout(func() { PrintFile(path) })
 		assert.Equal(t, "main_worktree: /app\n", out)
@@ -144,7 +144,7 @@ func TestWriteFile(t *testing.T) {
 	t.Run("overwrite existing", func(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "config.yaml")
-		os.WriteFile(path, []byte("old: true\n"), 0644)
+		os.WriteFile(path, []byte("old: true\n"), 0644) //nolint:errcheck //nolint:errcheck
 
 		cfg := &Config{MainWorktree: "/new"}
 		err := WriteFile(path, cfg)

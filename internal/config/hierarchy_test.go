@@ -102,7 +102,7 @@ func TestMerge_EventOverride(t *testing.T) {
 
 func TestLoadHierarchy_NoConfigFiles(t *testing.T) {
 	repoDir := t.TempDir()
-	os.MkdirAll(filepath.Join(repoDir, ".git"), 0755)
+	os.MkdirAll(filepath.Join(repoDir, ".git"), 0755) //nolint:errcheck //nolint:errcheck
 	cfgDir := t.TempDir()
 
 	cfg, err := LoadHierarchy(repoDir, cfgDir, "no-such-project")
@@ -113,8 +113,8 @@ func TestLoadHierarchy_NoConfigFiles(t *testing.T) {
 
 func TestLoadHierarchy_BrokenYAML(t *testing.T) {
 	repoDir := t.TempDir()
-	os.MkdirAll(filepath.Join(repoDir, ".git"), 0755)
-	os.WriteFile(filepath.Join(repoDir, ".worktree.yaml"), []byte("{{{broken"), 0644)
+	os.MkdirAll(filepath.Join(repoDir, ".git"), 0755)                                 //nolint:errcheck //nolint:errcheck
+	os.WriteFile(filepath.Join(repoDir, ".worktree.yaml"), []byte("{{{broken"), 0644) //nolint:errcheck //nolint:errcheck
 
 	cfgDir := t.TempDir()
 

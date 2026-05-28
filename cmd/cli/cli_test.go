@@ -98,8 +98,8 @@ func runGitCmd(t *testing.T, dir string, args ...string) string {
 func chdir(t *testing.T, dir string) func() {
 	t.Helper()
 	oldDir, _ := os.Getwd()
-	os.Chdir(dir)
-	return func() { os.Chdir(oldDir) }
+	_ = os.Chdir(dir)
+	return func() { _ = os.Chdir(oldDir) }
 }
 
 // ---------------------------------------------------------------------------

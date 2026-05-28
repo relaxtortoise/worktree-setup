@@ -7,8 +7,8 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/stretchr/testify/assert"
 	"github.com/relaxtortoise/worktree-setup/internal/git"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFormatTime(t *testing.T) {

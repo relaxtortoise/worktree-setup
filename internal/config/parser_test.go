@@ -190,7 +190,7 @@ func TestParseFile_ErrorPaths(t *testing.T) {
 			setup: func(t *testing.T) string {
 				dir := t.TempDir()
 				path := filepath.Join(dir, ".worktree.yaml")
-				os.WriteFile(path, []byte("{{{bad"), 0644)
+				os.WriteFile(path, []byte("{{{bad"), 0644) //nolint:errcheck
 				return path
 			},
 			wantErr: true,
@@ -200,7 +200,7 @@ func TestParseFile_ErrorPaths(t *testing.T) {
 			setup: func(t *testing.T) string {
 				dir := t.TempDir()
 				path := filepath.Join(dir, ".worktree.yaml")
-				os.WriteFile(path, []byte{}, 0644)
+				os.WriteFile(path, []byte{}, 0644) //nolint:errcheck
 				return path
 			},
 			wantErr: false,

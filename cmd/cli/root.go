@@ -49,4 +49,3 @@ func loadConfig() (*config.Config, error) {
 	}
 	return config.LoadHierarchy(repoDir, configDir, projName)
 }
-

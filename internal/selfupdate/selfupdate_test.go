@@ -307,7 +307,7 @@ func TestRun_InteractiveCancel(t *testing.T) {
 	require.NoError(t, err)
 	os.Stdin = r
 	_, _ = w.WriteString("n\n")
-	w.Close()
+	_ = w.Close()
 
 	DoHTTPGet = func(url string) (*http.Response, error) {
 		return mockHTTPResponse(200, `{"tag_name":"v2.0.0"}`), nil
@@ -328,7 +328,7 @@ func TestRun_InteractiveYesThenDownloadFails(t *testing.T) {
 	require.NoError(t, err)
 	os.Stdin = r
 	_, _ = w.WriteString("y\n")
-	w.Close()
+	_ = w.Close()
 
 	callCount := 0
 	DoHTTPGet = func(url string) (*http.Response, error) {

@@ -110,7 +110,7 @@ func (u *Updater) Run(args []string, yes, check bool) error {
 	if err != nil {
 		return errors.New("failed to connect to GitHub, check your network")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to download binary: HTTP %d", resp.StatusCode)
@@ -121,13 +121,13 @@ func (u *Updater) Run(args []string, yes, check bool) error {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}
 	tmpPath := tmpFile.Name()
-	defer os.Remove(tmpPath)
+	defer func() { _ = os.Remove(tmpPath) }()
 
 	if _, err := io.Copy(tmpFile, resp.Body); err != nil {
-		tmpFile.Close()
+		_ = tmpFile.Close()
 		return fmt.Errorf("failed to download binary: %w", err)
 	}
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	if err := os.Chmod(tmpPath, 0755); err != nil {
 		return fmt.Errorf("failed to make binary executable: %w", err)
@@ -153,7 +153,7 @@ func (u *Updater) getLatestRelease() (*Release, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New("no releases found")
@@ -172,7 +172,7 @@ func (u *Updater) getReleaseByTag(tag string) (*Release, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("release not found for tag %s", tag)
