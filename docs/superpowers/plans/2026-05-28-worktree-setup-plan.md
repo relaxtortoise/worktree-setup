@@ -123,10 +123,52 @@ type Events struct {
 	PostDelete   *Event `yaml:"post-delete,omitempty"`
 }
 
-type Event struct {
-	Run    []string    `yaml:"run,omitempty"`
-	Copy   *CopyItems  `yaml:"copy,omitempty"`
+type Step struct {
+	Run     string     `yaml:"run,omitempty"`
+	Copy    *CopyItems `yaml:"copy,omitempty"`
 	Symlink *CopyItems `yaml:"symlink,omitempty"`
+}
+
+func (s *Step) UnmarshalYAML(unmarshal func(any) error) error {
+	// 尝试裸字符串 → 隐式 run
+	var str string
+	if err := unmarshal(&str); err == nil {
+		s.Run = str
+		return nil
+	}
+	// 尝试对象 {run:, copy:, symlink:}
+	type stepAlias Step
+	var alias stepAlias
+	if err := unmarshal(&alias); err != nil {
+		return err
+	}
+	*s = Step(alias)
+	return nil
+}
+
+type Event struct {
+	Steps   []Step     `yaml:"steps,omitempty"`
+	Run     []string   `yaml:"run,omitempty"`
+	Copy    *CopyItems `yaml:"copy,omitempty"`
+	Symlink *CopyItems `yaml:"symlink,omitempty"`
+}
+
+// StepsOrLegacy 统一返回 steps 列表。若 events 用三段式则转为 virtual steps。
+func (e *Event) StepsOrLegacy() []Step {
+	if e.Steps != nil {
+		return e.Steps
+	}
+	var steps []Step
+	if e.Copy != nil && len(e.Copy.Items) > 0 {
+		steps = append(steps, Step{Copy: e.Copy})
+	}
+	if e.Symlink != nil && len(e.Symlink.Items) > 0 {
+		steps = append(steps, Step{Symlink: e.Symlink})
+	}
+	if len(e.Run) > 0 {
+		steps = append(steps, Step{Run: strings.Join(e.Run, "\n")})
+	}
+	return steps
 }
 
 // CopyAction 单个复制/软链接条目
@@ -251,6 +293,44 @@ on:
 	}
 	if len(cfg.On.PostCreate.Symlink.Items) != 1 {
 		t.Errorf("symlink items = %d", len(cfg.On.PostCreate.Symlink.Items))
+	}
+}
+
+func TestParseWorktreeYAML_StepsWithImplicitRun(t *testing.T) {
+	yaml := `
+on:
+  post-create:
+    steps:
+      - "make generate"
+      - copy:
+          "output/bundle.js": "public/bundle.js"
+      - symlink:
+          "../main/vendor": "vendor"
+      - "go build ./..."
+`
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".worktree.yaml")
+	os.WriteFile(path, []byte(yaml), 0644)
+
+	cfg, err := ParseFile(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	steps := cfg.On.PostCreate.Steps
+	if len(steps) != 4 {
+		t.Fatalf("expected 4 steps, got %d", len(steps))
+	}
+	if steps[0].Run != "make generate" {
+		t.Errorf("step 0 Run = %q", steps[0].Run)
+	}
+	if steps[1].Copy == nil || len(steps[1].Copy.Items) != 1 {
+		t.Error("step 1 copy missing")
+	}
+	if steps[2].Symlink == nil || len(steps[2].Symlink.Items) != 1 {
+		t.Error("step 2 symlink missing")
+	}
+	if steps[3].Run != "go build ./..." {
+		t.Errorf("step 3 Run = %q", steps[3].Run)
 	}
 }
 
@@ -864,25 +944,40 @@ func (r *Runner) ExecuteEvent(event *config.Event, worktreeDir string) error {
 	if event == nil {
 		return nil
 	}
-
-	for _, cmd := range event.Run {
-		if err := ExecuteRun([]string{cmd}, worktreeDir, false); err != nil {
-			return fmt.Errorf("run %q: %w", cmd, err)
+	steps := event.StepsOrLegacy()
+	for i, step := range steps {
+		if err := r.executeStep(step, worktreeDir); err != nil {
+			return fmt.Errorf("step %d: %w", i+1, err)
 		}
 	}
+	return nil
+}
 
-	if event.Copy != nil {
-		if _, err := ExecuteCopy(worktreeDir, r.MainWorktree, event.Copy.Items); err != nil {
+func (r *Runner) executeStep(step config.Step, worktreeDir string) error {
+	// 处理 copy
+	if step.Copy != nil {
+		if _, err := ExecuteCopy(worktreeDir, r.MainWorktree, step.Copy.Items); err != nil {
 			return fmt.Errorf("copy: %w", err)
 		}
 	}
-
-	if event.Symlink != nil {
-		if _, err := ExecuteSymlink(worktreeDir, r.MainWorktree, event.Symlink.Items); err != nil {
+	// 处理 symlink
+	if step.Symlink != nil {
+		if _, err := ExecuteSymlink(worktreeDir, r.MainWorktree, step.Symlink.Items); err != nil {
 			return fmt.Errorf("symlink: %w", err)
 		}
 	}
-
+	// 处理 run
+	if step.Run != "" {
+		for _, cmd := range strings.Split(step.Run, "\n") {
+			cmd = strings.TrimSpace(cmd)
+			if cmd == "" {
+				continue
+			}
+			if err := ExecuteRun([]string{cmd}, worktreeDir, false); err != nil {
+				return fmt.Errorf("run %q: %w", cmd, err)
+			}
+		}
+	}
 	return nil
 }
 
@@ -890,6 +985,7 @@ func (r *Runner) ExecutePreCreate(event *config.Event) error {
 	if event == nil {
 		return nil
 	}
+	// pre-create 仅允许 run，不支持 copy/symlink
 	for _, cmd := range event.Run {
 		if err := ExecuteRun([]string{cmd}, r.MainWorktree, false); err != nil {
 			return fmt.Errorf("pre-create run %q: %w", cmd, err)
