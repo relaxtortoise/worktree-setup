@@ -10,7 +10,7 @@
 |---|---|
 | `wt add [branch]` | 创建 worktree。带分支参数直接创建（跳过 TUI），无参数进入 fuzzy 选择器 |
 | `wt remove [name]` | 删除 worktree，触发 pre/post-delete 事件 |
-| `wt switch [name]` | 切换到已有 worktree，输出路径供 shell 集成。无参数进入 TUI 选择器 |
+| `wt switch [name]` | 切换到已有 worktree（跨项目），输出路径供 shell 集成。无参数进入 TUI 选择器 |
 | `wt list` | 列出所有 worktree |
 | `wt init` | 生成 `.worktree.yaml` 模板及项目个人配置 |
 | `wt install` | 往 `.git/hooks/` 安装 hook 脚本 |
@@ -203,6 +203,17 @@ path_strategy:
 - **快捷键**：`↑↓` 或 `Ctrl+j/k` 导航，`Enter` 确认，`Esc` 退出
 - **快捷路径**：`wt add <branch>` 传入完整分支名时跳过 TUI 直接创建
 
+### wt add TUI vs wt switch TUI
+
+两个 TUI 共用同一选择器组件，但数据源不同：
+
+- `wt add`：显示 origin 远程分支，选择后创建新 worktree
+- `wt switch`：显示所有已知项目的所有本地 worktree（从 `git worktree list` 及各项目配置中收集），跨项目跳转。每行格式：`{project_name}/{branch} {path}`
+
+`wt switch` 的数据来源：
+1. 当前仓库的 worktree —— 实时从 `git worktree list` 获取
+2. 其他已知项目 —— 从 `~/.config/worktree-setup/projects/` 下已初始化的项目目录中读取，再逐项目调用 `git worktree list`
+
 ## Git Hooks
 
 `wt install` 写入轻量 shell 包装脚本到 `.git/hooks/`：
@@ -210,6 +221,11 @@ path_strategy:
 ```sh
 #!/bin/sh
 # .git/hooks/post-checkout（由 wt install 安装）
+
+# wt 自身触发的 git 操作不重复执行 hook
+if [ -n "$WT_INTERNAL" ]; then
+    exit 0
+fi
 wt run post-checkout "$@" --detect-create
 ```
 
@@ -225,6 +241,17 @@ wt run post-checkout "$@" --detect-create
 - **previous HEAD ≠ `0000...`** → 普通分支切换 → 执行 `post-checkout` 动作
 
 这确保了通过任意工具（IDE、手动 `git worktree add` 等）创建的 worktree 都能正确执行 `post-create` 配置中的自动化步骤。
+
+### WT_INTERNAL 环境变量
+
+`wt` 在执行自身触发的 git 操作时设置 `WT_INTERNAL=1`，hook 脚本检测到此变量后跳过执行，避免重复触发。该变量仅在 `wt` 子进程生命周期内存在，`wt` 退出后即消失，不影响后续用户的原生命令。
+
+| 场景 | hook 行为 |
+|---|---|
+| `wt add` 内部调用 `git worktree add` | `WT_INTERNAL=1` → hook 跳过，由 `wt add` 自行执行 `post-create` |
+| `wt remove` 内部调用 `git worktree remove` | `WT_INTERNAL=1` → hook 跳过 |
+| 用户手动 `git checkout other-branch` | `WT_INTERNAL` 不存在 → hook 正常执行 `post-checkout` |
+| 用户手动 `git worktree add` | hook 正常执行 `post-create`（检测 HEAD=0000） |
 
 ## 跨平台软链接
 
