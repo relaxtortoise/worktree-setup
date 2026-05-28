@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/relaxtortoise/worktree-setup/internal/engine"
 	gitpkg "github.com/relaxtortoise/worktree-setup/internal/git"
@@ -35,7 +34,7 @@ var runCmd = &cobra.Command{
 			if detectCreate {
 				// post-checkout hook args are after the event name in os.Args
 				// Find the 3 hook args: <prev-head> <new-head> <is-branch-checkout>
-				if len(os.Args) >= 3 && isNewWorktree(os.Args[len(os.Args)-3]) {
+				if len(os.Args) >= 3 && engine.IsNewWorktree(os.Args[len(os.Args)-3]) {
 					currentDir, _ := os.Getwd()
 					return eng.RunPostCreate(cfg, currentDir)
 				}
@@ -46,13 +45,6 @@ var runCmd = &cobra.Command{
 			return fmt.Errorf("unknown event: %s", event)
 		}
 	},
-}
-
-func isNewWorktree(prevHead string) bool {
-	if len(prevHead) >= 40 {
-		return strings.Count(prevHead, "0") == 40
-	}
-	return prevHead == "0000000000000000000000000000000000000000"
 }
 
 func init() {
