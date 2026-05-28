@@ -1,0 +1,244 @@
+package git
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// initGitRepo creates a temp git repo and returns its path.
+func initGitRepo(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	runRawGit(t, dir, "init", "-b", "main")
+	runRawGit(t, dir, "config", "user.email", "test@test")
+	runRawGit(t, dir, "config", "user.name", "test")
+	// Create an initial commit so the repo has a HEAD
+	writeFile(t, dir, "README.md", "# test")
+	runRawGit(t, dir, "add", "README.md")
+	runRawGit(t, dir, "commit", "-m", "initial")
+	return dir
+}
+
+// initBareRepo creates a bare repo (simulates a remote)
+func initBareRepo(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	runRawGit(t, dir, "init", "--bare")
+	return dir
+}
+
+// runRawGit runs a git command natively in the given directory.
+func runRawGit(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v failed in %s: %s\n%s", args, dir, err, out)
+	}
+	return string(out)
+}
+
+func writeFile(t *testing.T, dir, name, content string) {
+	t.Helper()
+	err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644)
+	require.NoError(t, err)
+}
+
+// ---------------------------------------------------------------------------
+// parsePorcelain tests
+// ---------------------------------------------------------------------------
+
+func TestParsePorcelain(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  int // number of worktrees parsed
+	}{
+		{
+			name: "single worktree",
+			input: `worktree /home/me/projects/app
+HEAD abc123def456
+branch refs/heads/main
+
+`,
+			want: 1,
+		},
+		{
+			name: "bare and non-bare",
+			input: `worktree /home/me/projects/app
+HEAD abc123
+branch refs/heads/main
+
+worktree /home/me/projects/app2
+HEAD def456
+branch refs/heads/feature
+bare
+
+`,
+			want: 2,
+		},
+		{
+			name:  "empty input",
+			input: "",
+			want:  0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wts := parsePorcelain(tt.input)
+			assert.Len(t, wts, tt.want)
+		})
+	}
+}
+
+func TestParsePorcelain_Fields(t *testing.T) {
+	input := `worktree /path/to/repo
+HEAD abc123def456789
+branch refs/heads/feature-x
+
+`
+	wts := parsePorcelain(input)
+	require.Len(t, wts, 1)
+	assert.Equal(t, "/path/to/repo", wts[0].Path)
+	assert.Equal(t, "abc123def456789", wts[0].Head)
+	assert.Equal(t, "refs/heads/feature-x", wts[0].Branch)
+	assert.False(t, wts[0].Bare)
+}
+
+func TestParsePorcelain_Bare(t *testing.T) {
+	input := `worktree /bare/repo
+HEAD abc123
+bare
+
+`
+	wts := parsePorcelain(input)
+	require.Len(t, wts, 1)
+	assert.True(t, wts[0].Bare)
+}
+
+// ---------------------------------------------------------------------------
+// URLToProjectName tests
+// ---------------------------------------------------------------------------
+
+func TestURLToProjectName(t *testing.T) {
+	tests := []struct {
+		name string
+		url  string
+		want string
+	}{
+		{
+			name: "https github url",
+			url:  "https://github.com/owner/repo.git",
+			want: "github.com-owner-repo",
+		},
+		{
+			name: "git ssh url",
+			url:  "git@github.com:owner/repo.git",
+			want: "github.com-owner-repo",
+		},
+		{
+			name: "url with no .git suffix",
+			url:  "https://github.com/owner/repo",
+			want: "github.com-owner-repo",
+		},
+		{
+			name: "two segment url",
+			url:  "https://example.com/owner",
+			want: "example.com-owner",
+		},
+		{
+			name: "url with extra path segments",
+			url:  "https://github.com/org/team/repo.git",
+			want: "org-team-repo",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := URLToProjectName(tt.url)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// ProjectName tests
+// ---------------------------------------------------------------------------
+
+func TestProjectName(t *testing.T) {
+	dir := initGitRepo(t)
+	runRawGit(t, dir, "remote", "add", "origin", "https://github.com/relaxtortoise/worktree-setup.git")
+
+	name, err := ProjectName(dir)
+	require.NoError(t, err)
+	assert.Equal(t, "github.com-relaxtortoise-worktree-setup", name)
+}
+
+func TestProjectName_NoRemote(t *testing.T) {
+	dir := initGitRepo(t)
+	// No remote added — expect error
+	_, err := ProjectName(dir)
+	require.Error(t, err)
+}
+
+// ---------------------------------------------------------------------------
+// Run and RunInternal tests
+// ---------------------------------------------------------------------------
+
+func TestRun_Success(t *testing.T) {
+	dir := initGitRepo(t)
+
+	// Use CmdFn override to run in our temp dir
+	oldCmdFn := CmdFn
+	defer func() { CmdFn = oldCmdFn }()
+
+	CmdFn = func(name string, args ...string) *exec.Cmd {
+		cmd := exec.Command(name, args...)
+		// Set working dir for git commands
+		if name == "git" {
+			cmd.Dir = dir
+		}
+		return cmd
+	}
+
+	out, err := Run("rev-parse", "--abbrev-ref", "HEAD")
+	require.NoError(t, err)
+	assert.Equal(t, "main", out)
+}
+
+func TestRun_Failure(t *testing.T) {
+	oldCmdFn := CmdFn
+	defer func() { CmdFn = oldCmdFn }()
+
+	CmdFn = func(name string, args ...string) *exec.Cmd {
+		return exec.Command(name, args...)
+	}
+
+	_, err := Run("invalid-git-command-xyz")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "git")
+}
+
+func TestRunInternal_WTInternal(t *testing.T) {
+	dir := initGitRepo(t)
+
+	oldCmdFn := CmdFn
+	defer func() { CmdFn = oldCmdFn }()
+
+	var capturedCmd *exec.Cmd
+	CmdFn = func(name string, args ...string) *exec.Cmd {
+		cmd := exec.Command(name, args...)
+		cmd.Dir = dir
+		capturedCmd = cmd // capture pointer so Env is visible after RunInternal sets it
+		return cmd
+	}
+
+	_, err := RunInternal("rev-parse", "HEAD")
+	require.NoError(t, err)
+	assert.Contains(t, capturedCmd.Env, "WT_INTERNAL=1")
+}
