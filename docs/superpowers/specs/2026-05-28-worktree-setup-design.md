@@ -21,7 +21,7 @@
 ### 参数
 
 - `wt add --path /custom/path` — 显式指定 worktree 路径（覆盖 path_strategy）
-- `wt add --no-fetch` — 跳过自动 `git fetch origin`
+- `wt add --no-fetch` — 跳过自动 `git fetch origin`，也可通过环境变量 `WT_NO_FETCH=1` 全局停用
 
 ### Shell 集成
 
@@ -197,7 +197,7 @@ path_strategy:
 ```
 
 - **Fuzzy 匹配**：大小写不敏感，多字符模糊匹配分支名
-- **自动 fetch**：打开时自动执行 `git fetch origin`（`--no-fetch` 跳过）
+- **自动 fetch**：打开时自动执行 `git fetch origin`（`--no-fetch` 或 `WT_NO_FETCH=1` 跳过）
 - **分支列表**：仅显示 origin 远程分支，按最近提交时间降序，排除 HEAD 和已 checkout 的分支
 - **每行信息**：分支名、最近提交相对时间、作者
 - **快捷键**：`↑↓` 或 `Ctrl+j/k` 导航，`Enter` 确认，`Esc` 退出
