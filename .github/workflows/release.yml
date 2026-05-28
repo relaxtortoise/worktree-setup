@@ -37,7 +37,7 @@ jobs:
             [ "$GOOS" = "windows" ] && ext=".exe"
             echo "Building wt-${GOOS}-${GOARCH}${ext}"
             GOOS=$GOOS GOARCH=$GOARCH go build \
-              -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.buildTime=${BUILD_TIME}" \
+              -ldflags "-X main.Version=${VERSION} -X main.commit=${COMMIT} -X main.buildTime=${BUILD_TIME}" \
               -o "dist/wt-${GOOS}-${GOARCH}${ext}" ./cmd/cli/
           done
 
