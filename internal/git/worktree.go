@@ -46,10 +46,11 @@ func RunInternal(args ...string) (string, error) {
 }
 
 func AddWorktree(path, branch, baseBranch string) error {
-	args := []string{"worktree", "add", path}
+	args := []string{"worktree", "add"}
 	if branch != "" {
-		args = append(args, branch)
+		args = append(args, "-b", branch)
 	}
+	args = append(args, path)
 	if baseBranch != "" {
 		args = append(args, baseBranch)
 	}

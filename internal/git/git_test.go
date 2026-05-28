@@ -242,3 +242,127 @@ func TestRunInternal_WTInternal(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, capturedCmd.Env, "WT_INTERNAL=1")
 }
+
+// ---------------------------------------------------------------------------
+// Worktree operation tests
+// ---------------------------------------------------------------------------
+
+func TestAddWorktree_Success(t *testing.T) {
+	dir := initGitRepo(t)
+	wtDir := filepath.Join(t.TempDir(), "worktree")
+
+	oldDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(oldDir)
+
+	out, err := Run("worktree", "list")
+	require.NoError(t, err, "listing before add: %s", out)
+
+	err = AddWorktree(wtDir, "", "")
+	require.NoError(t, err)
+	assert.DirExists(t, wtDir)
+}
+
+func TestRemoveWorktree_Success(t *testing.T) {
+	dir := initGitRepo(t)
+	wtDir := filepath.Join(t.TempDir(), "worktree")
+
+	oldDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(oldDir)
+
+	err := AddWorktree(wtDir, "", "")
+	require.NoError(t, err)
+
+	err = RemoveWorktree(wtDir, false)
+	require.NoError(t, err)
+	assert.NoDirExists(t, wtDir)
+}
+
+func TestRemoveWorktree_Force(t *testing.T) {
+	dir := initGitRepo(t)
+	wtDir := filepath.Join(t.TempDir(), "worktree")
+
+	oldDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(oldDir)
+
+	err := AddWorktree(wtDir, "", "")
+	require.NoError(t, err)
+
+	// Dirty the worktree
+	err = os.WriteFile(filepath.Join(wtDir, "dirty.txt"), []byte("hello"), 0644)
+	require.NoError(t, err)
+
+	err = RemoveWorktree(wtDir, true)
+	require.NoError(t, err)
+}
+
+func TestListWorktrees(t *testing.T) {
+	dir := initGitRepo(t)
+	wtDir := filepath.Join(t.TempDir(), "worktree")
+
+	oldDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(oldDir)
+
+	err := AddWorktree(wtDir, "feature-x", "main")
+	require.NoError(t, err)
+
+	wts, err := ListWorktrees()
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(wts), 2) // main + feature-x
+
+	found := false
+	for _, wt := range wts {
+		if wt.Path == wtDir {
+			found = true
+			assert.Equal(t, "refs/heads/feature-x", wt.Branch)
+		}
+	}
+	assert.True(t, found, "worktree not found in list")
+}
+
+func TestFindMainWorktree_Main(t *testing.T) {
+	dir := initGitRepo(t)
+
+	oldDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(oldDir)
+
+	path, err := FindMainWorktree()
+	require.NoError(t, err)
+	assert.Equal(t, dir, path)
+}
+
+func TestFindMainWorktree_Master(t *testing.T) {
+	// Create a repo with master instead of main
+	dir := t.TempDir()
+	runRawGit(t, dir, "init", "-b", "master")
+	runRawGit(t, dir, "config", "user.email", "test@test")
+	runRawGit(t, dir, "config", "user.name", "test")
+	writeFile(t, dir, "README.md", "# test")
+	runRawGit(t, dir, "add", "README.md")
+	runRawGit(t, dir, "commit", "-m", "initial")
+
+	oldDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(oldDir)
+
+	path, err := FindMainWorktree()
+	require.NoError(t, err)
+	assert.Equal(t, dir, path)
+}
+
+func TestCheckedOutBranches(t *testing.T) {
+	dir := initGitRepo(t)
+
+	oldDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(oldDir)
+
+	branches := checkedOutBranches()
+	assert.NotNil(t, branches)
+	// The main branch should be checked out (we just created it)
+	assert.True(t, branches["main"], "main branch should be checked out")
+}
