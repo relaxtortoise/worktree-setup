@@ -94,7 +94,7 @@ func runSelfUpdate(cmd *cobra.Command, args []string) error {
 		fmt.Printf("New version:     %s (%s/%s)\n", targetTag, runtime.GOOS, runtime.GOARCH)
 		fmt.Print("Update? [y/N]: ")
 		var answer string
-		fmt.Scanln(&answer)
+		_, _ = fmt.Scanln(&answer)
 		answer = strings.ToLower(strings.TrimSpace(answer))
 		if answer != "y" && answer != "yes" {
 			fmt.Println("Update cancelled.")
@@ -130,7 +130,7 @@ func runSelfUpdate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return errors.New("failed to connect to GitHub, check your network")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to download binary: HTTP %d", resp.StatusCode)
@@ -142,13 +142,13 @@ func runSelfUpdate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}
 	tmpPath := tmpFile.Name()
-	defer os.Remove(tmpPath)
+	defer func() { _ = os.Remove(tmpPath) }()
 
 	if _, err := io.Copy(tmpFile, resp.Body); err != nil {
-		tmpFile.Close()
+		_ = tmpFile.Close()
 		return fmt.Errorf("failed to download binary: %w", err)
 	}
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	// 9. Make executable and replace
 	if err := os.Chmod(tmpPath, 0755); err != nil {
@@ -176,7 +176,7 @@ func getLatestRelease() (*githubRelease, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New("no releases found")
@@ -195,7 +195,7 @@ func getReleaseByTag(tag string) (*githubRelease, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("release not found for tag %s", tag)
