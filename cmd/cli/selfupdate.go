@@ -28,6 +28,15 @@ const (
 	githubRepo  = "worktree-setup"
 )
 
+func httpGet(url string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "wt-self-update/1.0")
+	return http.DefaultClient.Do(req)
+}
+
 var selfUpdateCmd = &cobra.Command{
 	Use:   "self-update [version]",
 	Short: "Update wt to the latest or specified version",
@@ -75,6 +84,7 @@ func runSelfUpdate(cmd *cobra.Command, args []string) error {
 	if selfUpdateCheck {
 		fmt.Printf("Current version: %s (%s/%s)\n", current, runtime.GOOS, runtime.GOARCH)
 		fmt.Printf("Latest version:  %s (%s/%s)\n", targetTag, runtime.GOOS, runtime.GOARCH)
+		fmt.Println("An update is available.")
 		os.Exit(1)
 	}
 
@@ -116,7 +126,7 @@ func runSelfUpdate(cmd *cobra.Command, args []string) error {
 
 	// 7. Download binary
 	fmt.Printf("Downloading %s...\n", downloadURL)
-	resp, err := http.Get(downloadURL)
+	resp, err := httpGet(downloadURL)
 	if err != nil {
 		return errors.New("failed to connect to GitHub, check your network")
 	}
@@ -146,7 +156,14 @@ func runSelfUpdate(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := os.Rename(tmpPath, exePath); err != nil {
-		return errors.New("permission denied, try running with sudo")
+		// Fall back to copy if cross-device rename
+		data, copyErr := os.ReadFile(tmpPath)
+		if copyErr != nil {
+			return fmt.Errorf("failed to read downloaded binary: %w", copyErr)
+		}
+		if copyErr := os.WriteFile(exePath, data, 0755); copyErr != nil {
+			return fmt.Errorf("failed to replace binary: %w (try running with sudo)", copyErr)
+		}
 	}
 
 	fmt.Printf("Updated to %s\n", targetTag)
@@ -155,7 +172,7 @@ func runSelfUpdate(cmd *cobra.Command, args []string) error {
 
 func getLatestRelease() (*githubRelease, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", githubOwner, githubRepo)
-	resp, err := http.Get(url)
+	resp, err := httpGet(url)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +191,7 @@ func getLatestRelease() (*githubRelease, error) {
 
 func getReleaseByTag(tag string) (*githubRelease, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/tags/%s", githubOwner, githubRepo, tag)
-	resp, err := http.Get(url)
+	resp, err := httpGet(url)
 	if err != nil {
 		return nil, err
 	}
