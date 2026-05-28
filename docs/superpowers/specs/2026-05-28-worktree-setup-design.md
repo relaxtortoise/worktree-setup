@@ -85,10 +85,15 @@ internal/
 
 其中 `<name>` 由 `git remote get-url origin` 提取：`{host}/{owner}/{repo}`。
 
+`main_worktree` 与本地环境强相关，`wt init` 默认将其写入项目个人配置而非 `.worktree.yaml`。若 `.worktree.yaml` 中显式声明了 `main_worktree`，其优先级高于个人配置。
+
 ## .worktree.yaml 格式
 
 ```yaml
-# 可选：显式指定主 worktree 路径。省略则自动检测。
+# 可选：显式指定主 worktree 路径。
+# 通常此配置保存在个人项目配置中（与本地环境绑定），不随仓库提交。
+# 若在 .worktree.yaml 中显式声明也会被识别（优先级高于个人配置）。
+# 省略则自动检测（通过 git worktree list 查找 main/master 分支）。
 main_worktree: "/home/me/projects/myapp"
 
 # 可选：worktree 目录放置策略
