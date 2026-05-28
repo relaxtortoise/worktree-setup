@@ -4,6 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseWorktreeYAML_MapForm(t *testing.T) {
@@ -112,5 +115,106 @@ on:
 	}
 	if items[2].From != "scripts/hooks.sh" || items[2].To != ".git/hooks/pre-commit" {
 		t.Errorf("object item: %+v", items[2])
+	}
+}
+
+func TestParse(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   []byte
+		want    *Config
+		wantErr bool
+	}{
+		{
+			name:  "valid yaml",
+			input: []byte("main_worktree: /home/me/projects/app\npath_strategy: sibling\n"),
+			want: &Config{
+				MainWorktree: "/home/me/projects/app",
+				PathStrategy: &PathStrategy{Name: "sibling"},
+			},
+		},
+		{
+			name:    "invalid yaml",
+			input:   []byte("{{{invalid"),
+			wantErr: true,
+		},
+		{
+			name:  "empty input",
+			input: []byte{},
+			want:  &Config{},
+		},
+		{
+			name: "only on section",
+			input: []byte(`on:
+  post-create:
+    run:
+      - "echo hello"
+`),
+			want: &Config{
+				On: &Events{
+					PostCreate: &Event{
+						Run: []string{"echo hello"},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := Parse(tt.input)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestParseFile_ErrorPaths(t *testing.T) {
+	tests := []struct {
+		name    string
+		setup   func(t *testing.T) string
+		wantErr bool
+	}{
+		{
+			name: "file not found",
+			setup: func(t *testing.T) string {
+				return filepath.Join(t.TempDir(), "nonexistent.yaml")
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid yaml content",
+			setup: func(t *testing.T) string {
+				dir := t.TempDir()
+				path := filepath.Join(dir, ".worktree.yaml")
+				os.WriteFile(path, []byte("{{{bad"), 0644)
+				return path
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty file is valid",
+			setup: func(t *testing.T) string {
+				dir := t.TempDir()
+				path := filepath.Join(dir, ".worktree.yaml")
+				os.WriteFile(path, []byte{}, 0644)
+				return path
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := tt.setup(t)
+			_, err := ParseFile(path)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
 	}
 }
