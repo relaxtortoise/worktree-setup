@@ -12,7 +12,7 @@ var versionCmd = &cobra.Command{
 	Short: "Print the version number of wt",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("wt v%s (%s/%s) commit %s built at %s\n",
-			version, runtime.GOOS, runtime.GOARCH, commit, buildTime)
+			Version, runtime.GOOS, runtime.GOARCH, commit, buildTime)
 	},
 }
 

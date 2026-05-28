@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	version   = "dev"
+	Version   = "dev" // exported for internal/selfupdate
 	commit    = "unknown"
 	buildTime = "unknown"
 )
