@@ -30,7 +30,7 @@ func TestMergeConfigs_NilSkipped(t *testing.T) {
 func TestLoadHierarchy(t *testing.T) {
 	// 创建临时仓库
 	repoDir := t.TempDir()
-	os.MkdirAll(filepath.Join(repoDir, ".git"), 0755)
+	_ = os.MkdirAll(filepath.Join(repoDir, ".git"), 0755)
 	repoYAML := `
 path_strategy: nested
 on:
@@ -38,18 +38,18 @@ on:
     run:
       - "echo repo"
 `
-	os.WriteFile(filepath.Join(repoDir, ".worktree.yaml"), []byte(repoYAML), 0644)
+	_ = os.WriteFile(filepath.Join(repoDir, ".worktree.yaml"), []byte(repoYAML), 0644)
 
 	// 项目个人配置
 	cfgDir := t.TempDir()
 	projDir := filepath.Join(cfgDir, "projects", "github.com-owner-repo")
-	os.MkdirAll(projDir, 0755)
+	_ = os.MkdirAll(projDir, 0755)
 	projYAML := `main_worktree: /home/me/projects/myapp`
-	os.WriteFile(filepath.Join(projDir, "config.yaml"), []byte(projYAML), 0644)
+	_ = os.WriteFile(filepath.Join(projDir, "config.yaml"), []byte(projYAML), 0644)
 
 	// 全局配置
 	globalYAML := `path_strategy: sibling`
-	os.WriteFile(filepath.Join(cfgDir, "config.yaml"), []byte(globalYAML), 0644)
+	_ = os.WriteFile(filepath.Join(cfgDir, "config.yaml"), []byte(globalYAML), 0644)
 
 	hierarchy, err := LoadHierarchy(repoDir, cfgDir, "github.com-owner-repo")
 	if err != nil {

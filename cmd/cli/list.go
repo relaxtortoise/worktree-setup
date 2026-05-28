@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
 	gitpkg "github.com/relaxtortoise/worktree-setup/internal/git"
+	"github.com/spf13/cobra"
 )
 
 var listCmd = &cobra.Command{

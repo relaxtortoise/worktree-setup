@@ -3,14 +3,11 @@ version: "2"
 linters:
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
     - unused
-    - goimports
     - misspell
-    - gofmt
 
 run:
   tests: true

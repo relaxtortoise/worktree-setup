@@ -20,7 +20,7 @@ func Create(branch, explicitPath, projectName string, cfg *config.Config, autoFe
 	}
 
 	if autoFetch {
-		gitpkg.FetchOrigin()
+		_ = gitpkg.FetchOrigin()
 	}
 
 	targetPath := explicitPath

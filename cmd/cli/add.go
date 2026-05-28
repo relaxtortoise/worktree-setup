@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
 	"github.com/relaxtortoise/worktree-setup/internal/tui"
 	"github.com/relaxtortoise/worktree-setup/internal/worktree"
+	"github.com/spf13/cobra"
 )
 
 var addCmd = &cobra.Command{

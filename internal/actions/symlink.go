@@ -25,7 +25,7 @@ func ExecuteSymlink(dstDir, srcDir string, items []config.CopyAction) ([]string,
 			fmt.Fprintf(os.Stderr, "Symlink failed for %s: %v\n", item.To, err)
 			fmt.Fprintf(os.Stderr, "Downgrade to copy? This requires developer mode or admin privileges for symlink. [y/N]: ")
 			var answer string
-			fmt.Scanln(&answer)
+			_, _ = fmt.Scanln(&answer)
 			if strings.ToLower(strings.TrimSpace(answer)) == "y" {
 				if err := copyDir(src, dst); err != nil {
 					return linked, fmt.Errorf("fallback copy failed: %w", err)

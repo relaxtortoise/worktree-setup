@@ -20,7 +20,7 @@ func TestCopyFiles(t *testing.T) {
 	srcDir := t.TempDir()
 	dstDir := t.TempDir()
 
-	os.WriteFile(filepath.Join(srcDir, "a.txt"), []byte("hello"), 0644)
+	_ = os.WriteFile(filepath.Join(srcDir, "a.txt"), []byte("hello"), 0644)
 
 	_, err := ExecuteCopy(dstDir, srcDir, []config.CopyAction{
 		{From: "a.txt", To: "a.txt"},

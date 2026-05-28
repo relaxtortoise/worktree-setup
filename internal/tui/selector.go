@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/relaxtortoise/worktree-setup/internal/git"
 )
 
@@ -19,7 +19,7 @@ type SelectItem struct {
 type SelectType int
 
 const (
-	SelectBranch   SelectType = iota
+	SelectBranch SelectType = iota
 	SelectWorktree
 )
 
@@ -34,7 +34,7 @@ type model struct {
 
 func RunBranchSelector(autoFetch bool) (string, error) {
 	if autoFetch {
-		git.FetchOrigin()
+		_ = git.FetchOrigin()
 	}
 	branches, err := git.ListRemoteBranches()
 	if err != nil {

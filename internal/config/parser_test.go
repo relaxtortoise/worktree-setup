@@ -21,7 +21,7 @@ on:
 `
 	dir := t.TempDir()
 	path := filepath.Join(dir, ".worktree.yaml")
-	os.WriteFile(path, []byte(yaml), 0644)
+	_ = os.WriteFile(path, []byte(yaml), 0644)
 
 	cfg, err := ParseFile(path)
 	if err != nil {
@@ -58,7 +58,7 @@ on:
 `
 	dir := t.TempDir()
 	path := filepath.Join(dir, ".worktree.yaml")
-	os.WriteFile(path, []byte(yaml), 0644)
+	_ = os.WriteFile(path, []byte(yaml), 0644)
 
 	cfg, err := ParseFile(path)
 	if err != nil {
@@ -94,7 +94,7 @@ on:
 `
 	dir := t.TempDir()
 	path := filepath.Join(dir, ".worktree.yaml")
-	os.WriteFile(path, []byte(yaml), 0644)
+	_ = os.WriteFile(path, []byte(yaml), 0644)
 
 	cfg, err := ParseFile(path)
 	if err != nil {

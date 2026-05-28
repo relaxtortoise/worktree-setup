@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
 	"github.com/relaxtortoise/worktree-setup/internal/config"
 	gitpkg "github.com/relaxtortoise/worktree-setup/internal/git"
+	"github.com/spf13/cobra"
 )
 
 var noGitignore bool
@@ -33,14 +33,14 @@ on:
 `
 		wtPath := filepath.Join(repoDir, ".worktree.yaml")
 		if _, err := os.Stat(wtPath); os.IsNotExist(err) {
-			os.WriteFile(wtPath, []byte(template), 0644)
+			_ = os.WriteFile(wtPath, []byte(template), 0644)
 			fmt.Println("created .worktree.yaml")
 		} else {
 			fmt.Println(".worktree.yaml already exists, skipping")
 		}
 
 		projDir := config.ProjectConfigDir(projName)
-		os.MkdirAll(projDir, 0755)
+		_ = os.MkdirAll(projDir, 0755)
 		cfgPath := filepath.Join(projDir, "config.yaml")
 
 		if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
@@ -49,7 +49,7 @@ on:
 				mainWT = repoDir
 			}
 			content := fmt.Sprintf("main_worktree: %s\npath_strategy: sibling\n", mainWT)
-			os.WriteFile(cfgPath, []byte(content), 0644)
+			_ = os.WriteFile(cfgPath, []byte(content), 0644)
 			fmt.Printf("created %s\n", cfgPath)
 		} else {
 			fmt.Printf("%s already exists, skipping\n", cfgPath)

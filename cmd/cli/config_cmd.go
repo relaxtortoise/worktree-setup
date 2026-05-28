@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
 	"github.com/relaxtortoise/worktree-setup/internal/config"
+	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
@@ -24,7 +24,7 @@ var configCmd = &cobra.Command{
 			if projName == "" {
 				return fmt.Errorf("not in a git repository with a remote origin")
 			}
-			os.MkdirAll(config.ProjectConfigDir(projName), 0755)
+			_ = os.MkdirAll(config.ProjectConfigDir(projName), 0755)
 			cfgPath = config.ProjectConfigPath(projName)
 		}
 
@@ -35,7 +35,7 @@ var configCmd = &cobra.Command{
 
 		var cfg config.Config
 		if data, err := os.ReadFile(cfgPath); err == nil {
-			yaml.Unmarshal(data, &cfg)
+			_ = yaml.Unmarshal(data, &cfg)
 		}
 
 		switch action {
@@ -49,7 +49,7 @@ var configCmd = &cobra.Command{
 				return fmt.Errorf("usage: wt config set <key> <value>")
 			}
 			setConfigValue(&cfg, args[1], args[2])
-			os.MkdirAll(filepath.Dir(cfgPath), 0755)
+			_ = os.MkdirAll(filepath.Dir(cfgPath), 0755)
 			return writeConfigFile(cfgPath, &cfg)
 		case "list":
 			printConfigFile(cfgPath)

@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/relaxtortoise/worktree-setup/internal/config"
+	"github.com/spf13/cobra"
 )
 
 var (

@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"github.com/relaxtortoise/worktree-setup/internal/hooks"
+	"github.com/spf13/cobra"
 )
 
 var hooksCmd = &cobra.Command{

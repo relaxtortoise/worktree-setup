@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/relaxtortoise/worktree-setup/internal/engine"
 	gitpkg "github.com/relaxtortoise/worktree-setup/internal/git"
+	"github.com/spf13/cobra"
 )
 
 var detectCreate bool

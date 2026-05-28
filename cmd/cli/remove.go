@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"github.com/relaxtortoise/worktree-setup/internal/worktree"
+	"github.com/spf13/cobra"
 )
 
 var removeForce bool
