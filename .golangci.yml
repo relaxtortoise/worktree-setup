@@ -12,16 +12,6 @@ linters:
 run:
   tests: true
 
-issues:
-  max-issues-per-linter: 0
-  max-same-issues: 0
-
-exclusions:
-  rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-
 formatters:
   enable:
     - goimports
