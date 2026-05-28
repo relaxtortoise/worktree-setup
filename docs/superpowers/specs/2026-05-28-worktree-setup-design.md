@@ -13,7 +13,7 @@
 | `wt switch [name]` | 切换到已有 worktree（跨项目），输出路径供 shell 集成。无参数进入 TUI 选择器 |
 | `wt list` | 列出所有 worktree |
 | `wt init` | 生成 `.worktree.yaml` 模板及项目个人配置 |
-| `wt install` | 往 `.git/hooks/` 安装 hook 脚本 |
+| `wt hooks` | 往 `.git/hooks/` 安装 hook 脚本 |
 | `wt run <event>` | 执行配置中对应事件，供 git hooks 内部调用 |
 | `wt config [get/set/list]` | 管理项目个人配置 `~/.config/worktree-setup/projects/<name>/config.yaml` |
 | `wt config -g \| --global [get/set/list]` | 管理全局个人配置 `~/.config/worktree-setup/config.yaml` |
@@ -61,7 +61,7 @@ internal/
   ├── tui/                  # 分支/worktree 选择器
   │   └── selector.go       # bubbletea + bubbles fuzzy 选择器
   ├── hooks/                # git hooks 管理
-  │   └── installer.go      # wt install 实现
+  │   └── installer.go      # wt hooks 实现
   └── worktree/             # worktree 生命周期管理
       ├── create.go         # wt add 完整流程
       └── remove.go         # wt remove 完整流程
@@ -216,11 +216,11 @@ path_strategy:
 
 ## Git Hooks
 
-`wt install` 写入轻量 shell 包装脚本到 `.git/hooks/`：
+`wt hooks` 写入轻量 shell 包装脚本到 `.git/hooks/`：
 
 ```sh
 #!/bin/sh
-# .git/hooks/post-checkout（由 wt install 安装）
+# .git/hooks/post-checkout（由 wt hooks 安装）
 
 # wt 自身触发的 git 操作不重复执行 hook
 if [ -n "$WT_INTERNAL" ]; then
@@ -256,7 +256,7 @@ wt run post-checkout "$@" --detect-create
 ## 跨平台软链接
 
 - **Linux/macOS**：`os.Symlink(source, target)`
-- **Windows**：尝试 `os.Symlink`，需要开发者模式或管理员权限。若无权限则警告并回退为复制目录。
+- **Windows**：尝试 `os.Symlink`，需要开发者模式或管理员权限。若无权限，问询用户是否降级为复制目录，用户同意后执行复制替代。
 
 ## Worktree 删除
 
@@ -282,7 +282,7 @@ curl -fsSL https://github.com/relaxtortoise/worktree-setup/releases/latest/downl
 ### 安装后步骤
 
 1. `wt init` —— 生成 `.worktree.yaml`
-2. `wt install` —— 安装 git hooks
+2. `wt hooks` —— 安装 git hooks
 3. 将 `wt` shell 函数添加到 `.zshrc`/`.bashrc`（用于 `wt switch` 的 cd 集成）
 
 ## 错误处理
