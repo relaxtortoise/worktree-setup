@@ -20,9 +20,15 @@ jobs:
         with:
           go-version: "1.26"
 
+      - name: Extract version
+        run: |
+          echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+          echo "COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
       - name: Build binaries
         run: |
           mkdir -p dist
+          BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           targets="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64"
           for t in $targets; do
             GOOS=${t%/*}
@@ -30,7 +36,9 @@ jobs:
             ext=""
             [ "$GOOS" = "windows" ] && ext=".exe"
             echo "Building wt-${GOOS}-${GOARCH}${ext}"
-            GOOS=$GOOS GOARCH=$GOARCH go build -o "dist/wt-${GOOS}-${GOARCH}${ext}" ./cmd/cli/
+            GOOS=$GOOS GOARCH=$GOARCH go build \
+              -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.buildTime=${BUILD_TIME}" \
+              -o "dist/wt-${GOOS}-${GOARCH}${ext}" ./cmd/cli/
           done
 
       - name: Generate changelog
