@@ -149,6 +149,23 @@ copy:
     to: ".git/hooks/pre-commit"
 ```
 
+### 执行顺序
+
+每个事件内使用 `steps` 控制执行顺序。`steps` 中每条按书写顺序执行，裸字符串默认为 `run`：
+
+```yaml
+post-create:
+  steps:
+    - "make generate"           # 隐式 run
+    - copy:
+        "output/bundle.js": "public/bundle.js"
+    - symlink:
+        "../main/vendor": "vendor"
+    - "go build ./..."          # 隐式 run
+```
+
+`steps` 与 `run`/`copy`/`symlink` 三段式互斥。三段式等价于 `steps: [<copy...>, <symlink...>, <run...>]`（copy → symlink → run 默认顺序），适用于不需要精确控制顺序的常见场景。
+
 冒号在所有主流 OS 中均为非法文件名字符，因此不会产生歧义。
 
 ### 事件
