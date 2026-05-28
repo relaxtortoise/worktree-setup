@@ -41,7 +41,7 @@ wt() {
 ## 架构
 
 ```
-cmd/wt/
+cmd/cli/
   └── main.go              # 入口，cobra 命令路由
 
 internal/
@@ -235,7 +235,7 @@ wt run post-checkout "$@" --detect-create
 
 ## 安装
 
-### install.sh
+### scripts/install.sh
 
 一行命令从 GitHub Releases 下载最新二进制：
 
