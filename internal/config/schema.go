@@ -15,6 +15,13 @@ type PathStrategy struct {
 	Template string `yaml:"-"`
 }
 
+func (p PathStrategy) MarshalYAML() (any, error) {
+	if p.Template != "" {
+		return map[string]string{"template": p.Template}, nil
+	}
+	return p.Name, nil
+}
+
 func (p *PathStrategy) UnmarshalYAML(unmarshal func(any) error) error {
 	var name string
 	if err := unmarshal(&name); err == nil {

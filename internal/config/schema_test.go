@@ -184,6 +184,46 @@ func TestEvent_StepsOrLegacy(t *testing.T) {
 	}
 }
 
+func TestPathStrategy_MarshalYAML(t *testing.T) {
+	tests := []struct {
+		name     string
+		ps       *PathStrategy
+		expected string
+	}{
+		{
+			name:     "name form",
+			ps:       &PathStrategy{Name: "sibling"},
+			expected: "sibling\n",
+		},
+		{
+			name:     "template form",
+			ps:       &PathStrategy{Template: "../{{.Branch}}"},
+			expected: "template: ../{{.Branch}}\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := yaml.Marshal(tt.ps)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, string(data))
+		})
+	}
+}
+
+func TestConfig_MarshalRoundTrip(t *testing.T) {
+	cfg := &Config{
+		MainWorktree: "/home/user/proj",
+		PathStrategy: &PathStrategy{Name: "nested"},
+	}
+	data, err := yaml.Marshal(cfg)
+	require.NoError(t, err)
+	cfg2, err := Parse(data)
+	require.NoError(t, err)
+	assert.Equal(t, "/home/user/proj", cfg2.MainWorktree)
+	require.NotNil(t, cfg2.PathStrategy)
+	assert.Equal(t, "nested", cfg2.PathStrategy.Name)
+}
+
 func TestParseColonShorthand(t *testing.T) {
 	tests := []struct {
 		name     string
