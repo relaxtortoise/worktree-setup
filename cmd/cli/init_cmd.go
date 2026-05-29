@@ -122,21 +122,20 @@ func writeInitConfig(repoDir, projName string, r tui.WizardResult) error {
 	}
 
 	if r.SaveWithVCS {
-		// .worktree.yaml ← only events
+		// .worktree.yaml ← events (always write to repo to signal VCS config)
+		wtCfg := &config.Config{}
 		if len(r.Events) > 0 {
-			wtCfg := &config.Config{
-				On: &config.Events{
-					PostCreate: &config.Event{},
-				},
+			wtCfg.On = &config.Events{
+				PostCreate: &config.Event{},
 			}
 			for _, ev := range r.Events {
 				wtCfg.On.PostCreate.Steps = append(wtCfg.On.PostCreate.Steps, config.Step{Run: ev})
 			}
-			if err := config.WriteFile(wtPath, wtCfg); err != nil {
-				return err
-			}
-			fmt.Printf("created %s\n", wtPath)
 		}
+		if err := config.WriteFile(wtPath, wtCfg); err != nil {
+			return err
+		}
+		fmt.Printf("created %s\n", wtPath)
 
 		// project config ← main_worktree + path_strategy
 		var sb strings.Builder

@@ -434,6 +434,72 @@ func TestInitCmd_FindMainWorktreeFallback(t *testing.T) {
 	assert.Contains(t, out, "created")
 }
 
+func TestInitCmd_NoWorktreeYAML_ExistingProjectConfig(t *testing.T) {
+	resetFlags()
+	dir := t.TempDir()
+	initGitRepo(t, dir)
+	runGitCmd(t, dir, "remote", "add", "origin", "https://github.com/owner/repo.git")
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	defer chdir(t, dir)()
+
+	// Pre-create project config.yaml (simulates user config from previous init,
+	// another machine, or --no-save-vcs run)
+	projDir := filepath.Join(home, ".config", "worktree-setup", "projects", "github.com-owner-repo")
+	require.NoError(t, os.MkdirAll(projDir, 0755))
+	require.NoError(t, os.WriteFile(
+		filepath.Join(projDir, "config.yaml"),
+		[]byte("main_worktree: /tmp/original\npath_strategy: sibling\n"),
+		0644,
+	))
+
+	// Repo has NO .worktree.yaml
+
+	// Run wt init non-interactively with events AND VCS save
+	out, _, err := executeCommand("init",
+		"--main-worktree", "/tmp/main",
+		"--path-strategy", "nested",
+		"--post-create-run", "make install",
+	)
+	require.NoError(t, err)
+	assert.Contains(t, out, "created")
+
+	// .worktree.yaml should be created in the repo
+	require.FileExists(t, filepath.Join(dir, ".worktree.yaml"))
+	data, err := os.ReadFile(filepath.Join(dir, ".worktree.yaml"))
+	require.NoError(t, err)
+	assert.Contains(t, string(data), "make install")
+
+	// Project config should be updated
+	projCfg := filepath.Join(home, ".config", "worktree-setup", "projects", "github.com-owner-repo", "config.yaml")
+	require.FileExists(t, projCfg)
+	data, err = os.ReadFile(projCfg)
+	require.NoError(t, err)
+	assert.Contains(t, string(data), "/tmp/main")
+	assert.Contains(t, string(data), "nested")
+}
+
+func TestInitCmd_NoEvents_SaveWithVCS_StillCreatesWorktreeYAML(t *testing.T) {
+	resetFlags()
+	dir := t.TempDir()
+	initGitRepo(t, dir)
+	runGitCmd(t, dir, "remote", "add", "origin", "https://github.com/owner/repo.git")
+	t.Setenv("HOME", t.TempDir())
+	defer chdir(t, dir)()
+
+	// Run wt init with VCS save but NO events
+	out, _, err := executeCommand("init",
+		"--main-worktree", "/tmp/main",
+		"--path-strategy", "sibling",
+	)
+	require.NoError(t, err)
+	assert.Contains(t, out, "created")
+
+	// .worktree.yaml should still be created even without events
+	// BUG: currently NOT created because writeInitConfig guards it behind len(Events) > 0
+	require.FileExists(t, filepath.Join(dir, ".worktree.yaml"))
+}
+
 func TestInitCmd_NoGitRepo(t *testing.T) {
 	resetFlags()
 	dir := t.TempDir()
