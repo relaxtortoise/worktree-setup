@@ -197,8 +197,11 @@ func (m *wizardModel) handleEscape() (tea.Model, tea.Cmd) {
 	case StepMainWorktree:
 		m.cancelled = true
 		return m, tea.Quit
-	case StepPathStrategy, StepCustomTemplate:
+	case StepPathStrategy:
 		m.step = StepMainWorktree
+		case StepCustomTemplate:
+			m.step = StepPathStrategy
+			m.cursor = 0
 		m.cursor = 0
 	case StepEvents:
 		m.step = StepPathStrategy
