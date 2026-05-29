@@ -12,7 +12,7 @@ import (
 type WizardStep int
 
 const (
-	StepMainWorktree   WizardStep = iota
+	StepMainWorktree WizardStep = iota
 	StepPathStrategy
 	StepCustomTemplate
 	StepEvents
@@ -44,9 +44,9 @@ var eventPresets = []struct{ Label, Command string }{
 }
 
 type wizardModel struct {
-	step      WizardStep
-	width     int
-	height    int
+	step   WizardStep
+	width  int
+	height int
 
 	mainWorktree   string
 	pathStrategy   string

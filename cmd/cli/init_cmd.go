@@ -104,7 +104,7 @@ func checkOverwrite(path, label string) error {
 	}
 	fmt.Printf("%s already exists. Overwrite? [y/N]: ", label)
 	var answer string
-	fmt.Scanln(&answer)
+	_, _ = fmt.Scanln(&answer)
 	if strings.ToLower(strings.TrimSpace(answer)) != "y" {
 		fmt.Printf("skipping %s\n", label)
 		return nil
@@ -140,7 +140,7 @@ func writeInitConfig(repoDir, projName string, r tui.WizardResult) error {
 
 		// project config ← main_worktree + path_strategy
 		var sb strings.Builder
-		sb.WriteString(fmt.Sprintf("main_worktree: %s\n", r.MainWorktree))
+		fmt.Fprintf(&sb, "main_worktree: %s\n", r.MainWorktree)
 		sb.WriteString(formatPathStrategy(r.PathStrategy, r.CustomTemplate))
 		if err := os.WriteFile(projCfgPath, []byte(sb.String()), 0644); err != nil {
 			return err
@@ -149,12 +149,12 @@ func writeInitConfig(repoDir, projName string, r tui.WizardResult) error {
 	} else {
 		// Everything → project config
 		var sb strings.Builder
-		sb.WriteString(fmt.Sprintf("main_worktree: %s\n", r.MainWorktree))
+		fmt.Fprintf(&sb, "main_worktree: %s\n", r.MainWorktree)
 		sb.WriteString(formatPathStrategy(r.PathStrategy, r.CustomTemplate))
 		if len(r.Events) > 0 {
 			sb.WriteString("on:\n  post-create:\n    steps:\n")
 			for _, ev := range r.Events {
-				sb.WriteString(fmt.Sprintf("      - run: %s\n", ev))
+				fmt.Fprintf(&sb, "      - run: %s\n", ev)
 			}
 		}
 		if err := os.WriteFile(projCfgPath, []byte(sb.String()), 0644); err != nil {
