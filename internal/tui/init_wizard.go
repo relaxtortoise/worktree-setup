@@ -90,8 +90,8 @@ func RunInitWizard(detectedMainWT string) WizardResult {
 	if err != nil {
 		return WizardResult{Cancelled: true}
 	}
-	fm := final.(*wizardModel)
-	if fm.cancelled {
+	fm, ok := final.(*wizardModel)
+	if !ok || fm.cancelled {
 		return WizardResult{Cancelled: true}
 	}
 
@@ -146,8 +146,9 @@ func (m *wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.step == StepMainWorktree || m.step == StepCustomTemplate || m.step == StepCustomCommand {
 		var cmd tea.Cmd
 		m.textInput, cmd = m.textInput.Update(msg)
-		if _, ok := msg.(tea.KeyMsg); ok {
-			return m.handleKey(msg.(tea.KeyMsg))
+		if keyMsg, ok := msg.(tea.KeyMsg); ok {
+			m2, cmd2 := m.handleKey(keyMsg)
+			return m2, tea.Batch(cmd, cmd2)
 		}
 		return m, cmd
 	}
@@ -199,9 +200,9 @@ func (m *wizardModel) handleEscape() (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case StepPathStrategy:
 		m.step = StepMainWorktree
-		case StepCustomTemplate:
-			m.step = StepPathStrategy
-			m.cursor = 0
+		m.cursor = 0
+	case StepCustomTemplate:
+		m.step = StepPathStrategy
 		m.cursor = 0
 	case StepEvents:
 		m.step = StepPathStrategy
@@ -222,7 +223,7 @@ func (m *wizardModel) handleEscape() (tea.Model, tea.Cmd) {
 func (m *wizardModel) handleEnter() (tea.Model, tea.Cmd) {
 	switch m.step {
 	case StepMainWorktree:
-		m.mainWorktree = m.textInput.Value()
+		m.mainWorktree = strings.TrimSpace(m.textInput.Value())
 		m.step = StepPathStrategy
 		m.cursor = 0
 	case StepPathStrategy:
