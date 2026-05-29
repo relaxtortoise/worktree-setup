@@ -14,7 +14,7 @@ var detectCreate bool
 var runCmd = &cobra.Command{
 	Use:   "run <event>",
 	Short: "Execute configured event (called by git hooks)",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := loadConfig()
 		if err != nil {
@@ -32,9 +32,8 @@ var runCmd = &cobra.Command{
 		switch event {
 		case "post-checkout":
 			if detectCreate {
-				// post-checkout hook args are after the event name in os.Args
-				// Find the 3 hook args: <prev-head> <new-head> <is-branch-checkout>
-				if len(os.Args) >= 3 && engine.IsNewWorktree(os.Args[len(os.Args)-3]) {
+				// args[1:] are the 3 hook args: <prev-head> <new-head> <is-branch-checkout>
+				if len(args) >= 2 && engine.IsNewWorktree(args[1]) {
 					currentDir, _ := os.Getwd()
 					return eng.RunPostCreate(cfg, currentDir)
 				}

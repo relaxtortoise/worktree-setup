@@ -574,6 +574,27 @@ func TestRunCmd_PostCheckout_DetectCreate(t *testing.T) {
 	assert.Empty(t, out)
 }
 
+func TestRunCmd_PostCheckout_WithHookArgs(t *testing.T) {
+	resetFlags()
+	dir := t.TempDir()
+	initGitRepo(t, dir)
+	runGitCmd(t, dir, "remote", "add", "origin", "https://github.com/owner/repo.git")
+	defer chdir(t, dir)()
+
+	// Simulate the exact call that git post-checkout hook makes:
+	//   wt run post-checkout "$@" --detect-create
+	// where $@ = <prev-head> <new-head> <is-branch-checkout>
+	// BUG: cobra.ExactArgs(1) rejects the 3 extra hook args
+	out, _, err := executeCommand("run", "post-checkout",
+		"0000000000000000000000000000000000000000",
+		"abc123def456abc123def456abc123def456abc123",
+		"1",
+		"--detect-create",
+	)
+	require.NoError(t, err)
+	assert.Empty(t, out)
+}
+
 func TestRunCmd_NoGitRepo(t *testing.T) {
 	resetFlags()
 	dir := t.TempDir()
