@@ -1,75 +1,77 @@
-# wt — Enhanced Git Worktree Management
+# wt — 增强版 Git Worktree 管理工具
 
 [![CI](https://github.com/relaxtortoise/worktree-setup/actions/workflows/ci.yml/badge.svg)](https://github.com/relaxtortoise/worktree-setup/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/relaxtortoise/worktree-setup)](https://github.com/relaxtortoise/worktree-setup/releases/latest)
 
-`wt` enhances `git worktree` with automated setup via `.worktree.yaml` config files. Define post-create scripts, file copies, and symlinks — and every new worktree is ready to use immediately.
+> [English](README_en.md)
 
-## Installation
+`wt` 通过 `.worktree.yaml` 配置文件增强了 `git worktree`，支持自动化初始化。定义创建后脚本、文件复制和软链接 —— 每个新 worktree 开箱即用。
 
-### One-liner
+## 安装
+
+### 一行命令
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/relaxtortoise/worktree-setup/master/scripts/install.sh | sh
 ```
 
-### Go install
+### Go 安装
 
 ```bash
 go install github.com/relaxtortoise/worktree-setup/cmd/cli@latest
 ```
 
-### Download binary
+### 下载二进制
 
-Prebuilt binaries are available on the [releases page](https://github.com/relaxtortoise/worktree-setup/releases).
+预编译二进制可从 [Releases 页面](https://github.com/relaxtortoise/worktree-setup/releases) 下载。
 
-## Quick Start
+## 快速开始
 
 ```bash
-# 1. Initialize config for your repo
+# 1. 为你的仓库初始化配置
 cd your-project
 wt init
 
-# 2. Install git hooks (enables auto-detection of worktree creation)
+# 2. 安装 git hooks（启用自动检测 worktree 创建）
 wt hooks
 
-# 3. Edit .worktree.yaml to add setup steps
-#    (see configuration reference below)
+# 3. 编辑 .worktree.yaml 添加初始化步骤
+#    （参见下方配置参考）
 
-# 4. Create a worktree
+# 4. 创建一个 worktree
 wt add feature-x
 ```
 
-## Commands
+## 命令
 
-| Command | Description |
-|---------|-------------|
-| `wt add [branch]` | Create a new worktree (interactive branch picker if omitted) |
-| `wt remove <name\|path>` | Remove a worktree |
-| `wt switch [path]` | Switch to a worktree (interactive picker across projects) |
-| `wt list` | List all worktrees |
-| `wt init` | Initialize `.worktree.yaml` and project config |
-| `wt hooks` | Install git hooks for auto-detection |
-| `wt run <event>` | Execute configured event steps |
-| `wt config [get\|set\|list]` | Manage personal config |
+| 命令 | 说明 |
+|------|------|
+| `wt add [branch]` | 创建新 worktree（省略分支名则启动交互式选择器） |
+| `wt remove <name\|path>` | 删除 worktree |
+| `wt switch [path]` | 切换到 worktree（跨项目交互式选择器） |
+| `wt list` | 列出所有 worktree |
+| `wt init` | 初始化 `.worktree.yaml` 和项目配置 |
+| `wt hooks` | 安装 git hooks 用于自动检测 |
+| `wt run <event>` | 执行已配置的事件步骤 |
+| `wt config [get\|set\|list]` | 管理个人配置 |
 
-## How It Works
+## 工作原理
 
-When you run `wt add feature-x`, `wt`:
+执行 `wt add feature-x` 时，`wt` 会：
 
-1. Loads and merges config from three layers: global → project → repo
-2. Optionally launches a TUI branch picker (if no branch specified)
-3. Fires the `pre-create` event
-4. Runs `git worktree add` with the computed path
-5. Fires `post-create` — running your configured steps (scripts, copies, symlinks)
+1. 加载并合并三层配置：全局 → 项目 → 仓库
+2. 可选启动 TUI 分支选择器（未指定分支时）
+3. 触发 `pre-create` 事件
+4. 执行 `git worktree add`（使用计算得到的路径）
+5. 触发 `post-create` —— 运行你配置的步骤（脚本、复制、软链接）
 
-Worktrees created outside of `wt` (e.g. `git worktree add` directly) are detected by the git hook installed via `wt hooks`, so your setup still runs automatically.
+通过 `git worktree add` 直接创建的 worktree 也会被 `wt hooks` 安装的 git hook 检测到，因此你的初始化步骤仍会自动执行。
 
-## Configuration
+## 配置
 
-See [docs/configuration.md](docs/configuration.md) for the complete configuration reference.
+完整配置参考见 [docs/configuration.md](docs/configuration.md)。
 
-Example `.worktree.yaml`:
+`.worktree.yaml` 示例：
 
 ```yaml
 on:
@@ -81,10 +83,35 @@ on:
           - node_modules: node_modules
 ```
 
-## Architecture
+## 架构
 
-See [docs/architecture.md](docs/architecture.md) for the full architecture design.
+```
+┌─────────────────────────────┐
+│  CLI (cobra)                │
+├─────────────────────────────┤
+│  Worktree (create/remove)   │
+├──────────────┬──────────────┤
+│  Engine      │  TUI         │
+├──────────────┼──────────────┤
+│  Actions     │  Git         │
+├──────────────┴──────────────┤
+│  Config                     │
+└─────────────────────────────┘
+```
+
+| 包 | 用途 |
+|---|------|
+| `cmd/cli/` | CLI 入口与命令定义 |
+| `internal/config/` | 三层配置合并 |
+| `internal/worktree/` | Worktree 创建/删除编排 |
+| `internal/engine/` | 事件生命周期引擎 |
+| `internal/actions/` | 步骤执行器（脚本、复制、软链接） |
+| `internal/git/` | Git 命令封装 |
+| `internal/hooks/` | Git hook 安装 |
+| `internal/tui/` | 交互式选择器 |
+
+完整架构设计见 [docs/architecture.md](docs/architecture.md)。
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — 详见 [LICENSE](LICENSE)。
