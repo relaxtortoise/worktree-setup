@@ -2,6 +2,7 @@ package worktree
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/relaxtortoise/worktree-setup/internal/config"
@@ -45,5 +46,6 @@ func Create(branch, explicitPath, projectName string, cfg *config.Config, autoFe
 		return targetPath, fmt.Errorf("post-create: %w", err)
 	}
 
+	slog.Info("worktree created", "worktree", targetPath, "base_branch", branch)
 	return targetPath, nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -136,6 +137,7 @@ func writeInitConfig(repoDir, projName string, r tui.WizardResult) error {
 			return err
 		}
 		fmt.Printf("created %s\n", wtPath)
+		slog.With("repo", repoDir).Info("config saved", "config_file", wtPath, "main_worktree", r.MainWorktree)
 
 		// project config ← main_worktree + path_strategy
 		var sb strings.Builder
@@ -145,6 +147,7 @@ func writeInitConfig(repoDir, projName string, r tui.WizardResult) error {
 			return err
 		}
 		fmt.Printf("created %s\n", projCfgPath)
+		slog.With("repo", repoDir).Info("config saved", "config_file", projCfgPath, "main_worktree", r.MainWorktree)
 	} else {
 		// Everything → project config
 		var sb strings.Builder
@@ -160,6 +163,7 @@ func writeInitConfig(repoDir, projName string, r tui.WizardResult) error {
 			return err
 		}
 		fmt.Printf("created %s\n", projCfgPath)
+		slog.With("repo", repoDir).Info("config saved", "config_file", projCfgPath, "main_worktree", r.MainWorktree)
 	}
 
 	return nil
