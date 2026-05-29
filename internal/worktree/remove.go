@@ -2,6 +2,7 @@ package worktree
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/relaxtortoise/worktree-setup/internal/config"
 	"github.com/relaxtortoise/worktree-setup/internal/engine"
@@ -32,5 +33,6 @@ func Remove(path string, cfg *config.Config, force bool) error {
 		return fmt.Errorf("post-delete: %w", err)
 	}
 
+	slog.Info("worktree removed", "worktree", path)
 	return nil
 }

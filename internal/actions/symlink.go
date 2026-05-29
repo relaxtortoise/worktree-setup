@@ -2,6 +2,7 @@ package actions
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -22,7 +23,7 @@ func ExecuteSymlink(dstDir, srcDir string, items []config.CopyAction) ([]string,
 
 		err := os.Symlink(src, dst)
 		if err != nil && runtime.GOOS == "windows" {
-			fmt.Fprintf(os.Stderr, "Symlink failed for %s: %v\n", item.To, err)
+			slog.Warn("symlink fallback", "item", item.To, "error", err)
 			fmt.Fprintf(os.Stderr, "Downgrade to copy? This requires developer mode or admin privileges for symlink. [y/N]: ")
 			var answer string
 			_, _ = fmt.Scanln(&answer)
@@ -30,7 +31,7 @@ func ExecuteSymlink(dstDir, srcDir string, items []config.CopyAction) ([]string,
 				if err := copyDir(src, dst); err != nil {
 					return linked, fmt.Errorf("fallback copy failed: %w", err)
 				}
-				fmt.Fprintf(os.Stderr, "Copied instead: %s\n", item.To)
+				slog.Info("symlink fallback used", "item", item.To)
 			}
 		} else if err != nil {
 			return linked, fmt.Errorf("symlink %s: %w", item.To, err)

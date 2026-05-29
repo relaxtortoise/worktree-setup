@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -46,6 +47,8 @@ var switchCmd = &cobra.Command{
 			return err
 		}
 		fmt.Println(path)
+		repoDir := getRepoDir()
+		slog.With("repo", repoDir).Info("worktree switched", "to", path, "from", repoDir)
 		return nil
 	},
 }

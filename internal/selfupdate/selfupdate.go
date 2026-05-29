@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -144,6 +145,7 @@ func (u *Updater) Run(args []string, yes, check bool) error {
 	}
 
 	fmt.Printf("Updated to %s\n", targetTag)
+	slog.Info("update applied", "from_version", current, "to_version", targetTag)
 	return nil
 }
 
