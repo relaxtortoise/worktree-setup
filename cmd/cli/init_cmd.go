@@ -56,7 +56,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Pre-check: existing files (interactive only)
-	hasFlags := initMainWorktree != "" || initPathStrategy != "" || len(initPostCreate) > 0
+	hasFlags := initMainWorktree != "" || initPathStrategy != "" || initNoSaveVCS || len(initPostCreate) > 0
 	if !hasFlags {
 		wtPath := filepath.Join(repoDir, ".worktree.yaml")
 		projCfgPath := config.ProjectConfigPath(projName)
