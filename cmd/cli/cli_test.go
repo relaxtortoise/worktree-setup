@@ -28,7 +28,10 @@ func resetFlags() {
 	noFetch = false
 	explicitPath = ""
 	detectCreate = false
-	noGitignore = false
+	initNoSaveVCS = false
+	initPostCreate = nil
+	initMainWorktree = ""
+	initPathStrategy = ""
 
 	// Reset cobra's help flag on every command to prevent --help from previous
 	// tests leaking into subsequent tests via the shared FlagSet pointer.
@@ -317,10 +320,28 @@ func TestInitCmd(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	defer chdir(t, dir)()
 
-	out, _, err := executeCommand("init")
+	out, _, err := executeCommand("init",
+		"--main-worktree", "/tmp/main",
+		"--path-strategy", "nested",
+		"--post-create-run", "make install",
+	)
 	require.NoError(t, err)
 	assert.Contains(t, out, "created")
 	require.FileExists(t, filepath.Join(dir, ".worktree.yaml"))
+
+	// Verify .worktree.yaml content
+	data, err := os.ReadFile(filepath.Join(dir, ".worktree.yaml"))
+	require.NoError(t, err)
+	assert.Contains(t, string(data), "make install")
+
+	// Verify project config content
+	home := os.Getenv("HOME")
+	projCfg := filepath.Join(home, ".config", "worktree-setup", "projects", "github.com-owner-repo", "config.yaml")
+	require.FileExists(t, projCfg)
+	data, err = os.ReadFile(projCfg)
+	require.NoError(t, err)
+	assert.Contains(t, string(data), "/tmp/main")
+	assert.Contains(t, string(data), "nested")
 }
 
 func TestInitCmd_AlreadyExists(t *testing.T) {
@@ -335,27 +356,80 @@ func TestInitCmd_AlreadyExists(t *testing.T) {
 	// Pre-create .worktree.yaml
 	require.NoError(t, os.WriteFile(filepath.Join(dir, ".worktree.yaml"), []byte("existing"), 0644))
 
-	// Pre-create project config so the "already exists" path is also covered
+	// Pre-create project config
 	projDir := filepath.Join(home, ".config", "worktree-setup", "projects", "github.com-owner-repo")
 	require.NoError(t, os.MkdirAll(projDir, 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(projDir, "config.yaml"), []byte("main_worktree: /tmp/main\n"), 0644))
 
-	out, _, err := executeCommand("init")
+	// Non-interactive mode still overwrites without prompting
+	out, _, err := executeCommand("init",
+		"--main-worktree", "/tmp/other",
+	)
 	require.NoError(t, err)
-	assert.Contains(t, out, "skipping")
+	assert.Contains(t, out, "created")
+}
+
+func TestInitCmd_NoSaveVCS(t *testing.T) {
+	resetFlags()
+	dir := t.TempDir()
+	initGitRepo(t, dir)
+	runGitCmd(t, dir, "remote", "add", "origin", "https://github.com/owner/repo.git")
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	defer chdir(t, dir)()
+
+	out, _, err := executeCommand("init",
+		"--main-worktree", "/tmp/main",
+		"--no-save-vcs",
+		"--post-create-run", "echo hello",
+	)
+	require.NoError(t, err)
+	assert.Contains(t, out, "created")
+
+	// .worktree.yaml should NOT exist
+	assert.NoFileExists(t, filepath.Join(dir, ".worktree.yaml"))
+
+	// Project config should have everything
+	projCfg := filepath.Join(home, ".config", "worktree-setup", "projects", "github.com-owner-repo", "config.yaml")
+	data, err := os.ReadFile(projCfg)
+	require.NoError(t, err)
+	assert.Contains(t, string(data), "main_worktree")
+	assert.Contains(t, string(data), "echo hello")
+}
+
+func TestInitCmd_MultiplePostCreateRun(t *testing.T) {
+	resetFlags()
+	dir := t.TempDir()
+	initGitRepo(t, dir)
+	runGitCmd(t, dir, "remote", "add", "origin", "https://github.com/owner/repo.git")
+	t.Setenv("HOME", t.TempDir())
+	defer chdir(t, dir)()
+
+	_, _, err := executeCommand("init",
+		"--main-worktree", "/tmp/main",
+		"--post-create-run", "make install",
+		"--post-create-run", "npm install",
+	)
+	require.NoError(t, err)
+
+	data, err := os.ReadFile(filepath.Join(dir, ".worktree.yaml"))
+	require.NoError(t, err)
+	assert.Contains(t, string(data), "make install")
+	assert.Contains(t, string(data), "npm install")
 }
 
 func TestInitCmd_FindMainWorktreeFallback(t *testing.T) {
 	resetFlags()
 	dir := t.TempDir()
-	// Bare repos have no worktree branches, so FindMainWorktree fails
-	// and the fallback mainWT = repoDir is used.
 	runGitCmd(t, dir, "init", "--bare")
 	runGitCmd(t, dir, "remote", "add", "origin", "https://github.com/owner/repo.git")
 	t.Setenv("HOME", t.TempDir())
 	defer chdir(t, dir)()
 
-	out, _, err := executeCommand("init")
+	// Non-interactive mode with bare repo
+	out, _, err := executeCommand("init",
+		"--path-strategy", "sibling",
+	)
 	require.NoError(t, err)
 	assert.Contains(t, out, "created")
 }
