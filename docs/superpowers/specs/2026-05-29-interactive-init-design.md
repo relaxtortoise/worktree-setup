@@ -1,83 +1,80 @@
-# Interactive `wt init` Design
+# 交互式 `wt init` 设计
 
-## Overview
+## 概述
 
-Replace the current hardcoded `wt init` with an interactive Bubble Tea TUI wizard that
-guides users through configuring their project. The wizard asks about `main_worktree`,
-`path_strategy`, post-create events, and whether to save events to VCS (`.worktree.yaml`)
-or keep everything in user config.
+将当前硬编码的 `wt init` 替换为基于 Bubble Tea 的交互式 TUI 向导，引导用户完成项目配置。向导收集 `main_worktree`、`path_strategy`、post-create 事件，以及是否将事件保存到 VCS（`.worktree.yaml`）或全部保留在用户配置中。
 
-## Current Behavior
+## 当前行为
 
-`wt init` creates two files with hardcoded defaults:
+`wt init` 用硬编码默认值创建两个文件：
 
-- `.worktree.yaml` — only `on.post-create.run: []` and `on.post-checkout.run: []`
-- `~/.config/worktree-setup/projects/<project>/config.yaml` — `main_worktree` and `path_strategy: sibling`
+- `.worktree.yaml` — 仅 `on.post-create.run: []` 和 `on.post-checkout.run: []`
+- `~/.config/worktree-setup/projects/<project>/config.yaml` — `main_worktree` 和 `path_strategy: sibling`
 
-No prompts, no customization.
+无提示，无自定义。
 
-## Target Flow
+## 目标流程
 
 ```
 wt init
   │
-  ├─ Pre-checks (before TUI)
-  │   ├─ Not in a git repo? → error, exit
-  │   ├─ No remote origin? → error, exit
-  │   ├─ .worktree.yaml exists? → prompt overwrite [y/N]
-  │   └─ project config exists? → prompt overwrite [y/N]
+  ├─ 预检查（TUI 之前）
+  │   ├─ 不在 git 仓库中？→ 报错退出
+  │   ├─ 无 remote origin？→ 报错退出
+  │   ├─ .worktree.yaml 已存在？→ 提示覆盖 [y/N]
+  │   └─ project config 已存在？→ 提示覆盖 [y/N]
   │
-  ├─ CLI flags provided? → skip TUI, write directly
+  ├─ 提供了 CLI 参数？→ 跳过 TUI，直接写入
   │
-  └─ Run InitWizard TUI
-      ├─ Step 1: main_worktree (text input, pre-filled)
-      ├─ Step 2: path_strategy (single select)
-      ├─ Step 3: post-create events (multi-select presets + custom)
-      ├─ Step 4: Save With VCS? (default Yes)
-      └─ Step 5: Review & confirm
+  └─ 启动 InitWizard TUI
+      ├─ 第 1 步：main_worktree（文本输入，预填检测值）
+      ├─ 第 2 步：path_strategy（单选）
+      ├─ 第 3 步：post-create 事件（多选预设 + 自定义）
+      ├─ 第 4 步：Save With VCS?（默认 Yes）
+      └─ 第 5 步：审核确认
           │
-          └─ Write files, print summary
+          └─ 写入文件，打印摘要
 ```
 
-## CLI Flags (non-interactive mode)
+## CLI 参数（非交互模式）
 
-Providing any of these flags skips the TUI:
+提供以下任意参数即跳过 TUI：
 
-| Flag | Description |
-|------|-------------|
-| `--main-worktree <path>` | Main worktree path |
-| `--path-strategy <name>` | Path strategy: `sibling`, `nested`, or a template |
-| `--no-save-vcs` | Save everything to user config (default: save-vcs) |
-| `--post-create-run <cmd>` | Add a post-create run step (repeatable) |
+| 参数 | 说明 |
+|------|------|
+| `--main-worktree <path>` | 主工作树路径 |
+| `--path-strategy <name>` | 路径策略：`sibling`、`nested` 或模板 |
+| `--no-save-vcs` | 所有配置保存到用户配置（默认 save-vcs） |
+| `--post-create-run <cmd>` | 添加 post-create 运行步骤（可重复） |
 
-## Config Save Rules
+## 配置保存规则
 
-**Save With VCS (default):**
-- `.worktree.yaml` ← only `on:` (event configuration)
-- `~/.config/worktree-setup/projects/<project>/config.yaml` ← `main_worktree`, `path_strategy`
+**Save With VCS（默认）：**
+- `.worktree.yaml` ← 仅 `on:`（事件配置）
+- `~/.config/worktree-setup/projects/<project>/config.yaml` ← `main_worktree`、`path_strategy`
 
-**Save Without VCS (`--no-save-vcs`):**
-- `~/.config/worktree-setup/projects/<project>/config.yaml` ← everything
-- `.worktree.yaml` is NOT created
+**Save Without VCS（`--no-save-vcs`）：**
+- `~/.config/worktree-setup/projects/<project>/config.yaml` ← 全部配置
+- 不创建 `.worktree.yaml`
 
-## Overwrite Behavior
+## 覆盖行为
 
-- **Interactive mode**: Before launching TUI, prompt `[y/N]` for each existing file. N skips that file.
-- **Non-interactive mode** (CLI flags): Overwrite without prompting.
+- **交互模式**：TUI 启动前，对每个已存在文件提示 `[y/N]`，N 跳过该文件。
+- **非交互模式**（有 CLI 参数）：直接覆盖，不提示。
 
-## TUI Pages
+## TUI 页面
 
-### Page 1 — main_worktree
+### 第 1 页 — main_worktree
 
-Text input pre-filled with auto-detected main worktree path. Press enter to confirm or edit first.
+文本输入框，预填自动检测到的主工作树路径。回车确认，或编辑后确认。
 
-### Page 2 — path_strategy
+### 第 2 页 — path_strategy
 
-Single-select: `sibling` (default), `nested`, `custom`. Choosing `custom` reveals a Go template input field.
+单选：`sibling`（默认）、`nested`、`custom`。选择 `custom` 后显示 Go 模板输入框。
 
-### Page 3 — post-create events
+### 第 3 页 — post-create 事件
 
-Multi-select with presets:
+多选预设列表：
 
 ```
 [x] cp .env.example .env
@@ -88,37 +85,37 @@ Multi-select with presets:
 [ ] pip install -r requirements.txt
 [ ] go mod download
 [ ] bundle install
-[+] Add custom command...
+[+] 添加自定义命令...
 ```
 
-Space toggles selection, enter confirms. Selecting "+" opens a text input for a custom command.
+空格切换选中，回车确认。选择 "+" 弹出文本输入框输入自定义命令。
 
-### Page 4 — Save With VCS?
+### 第 4 页 — Save With VCS?
 
 ```
-> Yes — events → .worktree.yaml, personal settings → user config
-  No  — everything saved to user config only
+> Yes — 事件 → .worktree.yaml，个人设置 → 用户配置
+  No  — 全部保存到用户配置
 ```
 
-Default: Yes.
+默认 Yes。
 
-### Page 5 — Review
+### 第 5 页 — 审核确认
 
-Shows what will be written to each file. Enter to confirm, esc to go back.
+展示即将写入每个文件的内容。回车确认写入，esc 返回修改。
 
-## Code Changes
+## 代码变更
 
-### Modified: `cmd/cli/init_cmd.go`
+### 修改：`cmd/cli/init_cmd.go`
 
-Rewrite. New responsibilities:
-- Pre-check helpers (git repo, remote origin, existing files)
-- CLI flag parsing
-- Branch: CLI flags → direct write, else → launch `tui.RunInitWizard()`
-- Write config to appropriate files based on VCS decision
+重写。新职责：
+- 预检查辅助逻辑（git 仓库、remote origin、已存在文件）
+- CLI 参数解析
+- 分支：有 CLI 参数 → 直接写入，否则 → 启动 `tui.RunInitWizard()`
+- 根据 VCS 决定写入对应配置文件
 
-### New: `internal/tui/init_wizard.go`
+### 新增：`internal/tui/init_wizard.go`
 
-Bubble Tea multi-step model:
+Bubble Tea 多步骤向导模型：
 
 ```go
 type WizardModel struct {
@@ -131,7 +128,7 @@ type WizardModel struct {
     cancelled      bool
 
     textInput textinput.Model
-    // ... sub-models for select/multiselect
+    // ... 单选/多选子模型
 }
 
 type WizardStep int
@@ -155,32 +152,32 @@ type WizardResult struct {
 func RunInitWizard(detectedMainWT string) WizardResult
 ```
 
-Reuses existing `textinput` and selector patterns from `internal/tui/selector.go`.
+复用 `internal/tui/selector.go` 中已有的 `textinput` 和选择器模式。
 
-### New: `internal/tui/init_wizard_test.go`
+### 新增：`internal/tui/init_wizard_test.go`
 
-- Step progression (each step → next, ESC → cancelled)
-- Default values (main_worktree pre-filled, path_strategy=sibling, Save VCS=true)
-- Multi-select toggle and custom command entry
-- Custom path_strategy reveals template input
-- Review page reflects prior selections
+- 步骤流转（每步 → 下一步，ESC → 取消）
+- 默认值（main_worktree 预填、path_strategy=sibling、Save VCS=true）
+- 多选切换和自定义命令输入
+- 选择 custom path_strategy 后显示模板输入框
+- 审核页反映之前的选择
 
-### CLI test additions (`cmd/cli/cli_test.go`)
+### CLI 测试补充（`cmd/cli/cli_test.go`）
 
-- `wt init` without args
+- `wt init` 无参数
 - `wt init --main-worktree /x --path-strategy nested`
 - `wt init --no-save-vcs`
 - `wt init --post-create-run "make install"`
-- Error: not in git repo
-- Error: no remote origin
+- 错误：不在 git 仓库中
+- 错误：无 remote origin
 
-## Error Handling
+## 错误处理
 
-| Scenario | Behavior |
-|----------|----------|
-| Not in git repo | Error before TUI: `"not in a git repository"` |
-| No remote origin | Error before TUI: `"no remote origin configured"` |
-| Existing files | Prompt `[y/N]` per file (interactive); overwrite (non-interactive) |
-| User presses ESC | `Cancelled=true`, no files written |
-| File write failure | Return error, cobra prints it |
-| Empty events list | Allowed — writes `on.post-create.run: []` |
+| 场景 | 行为 |
+|------|------|
+| 不在 git 仓库 | TUI 前报错：`"不在 git 仓库中"` |
+| 无 remote origin | TUI 前报错：`"未配置 remote origin"` |
+| 已存在文件 | 交互模式逐文件提示 `[y/N]`；非交互模式直接覆盖 |
+| 用户按 ESC | `Cancelled=true`，不写入任何文件 |
+| 文件写入失败 | 返回 error，cobra 打印错误信息 |
+| 事件列表为空 | 允许 — 写入 `on.post-create.run: []` |
